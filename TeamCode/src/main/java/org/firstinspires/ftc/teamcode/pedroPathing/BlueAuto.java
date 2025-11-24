@@ -28,7 +28,7 @@ import java.util.List;
 public class BlueAuto extends LinearOpMode {
     private Follower follower;
     private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(60, 16, Math.toRadians(20));
+    private final Pose scorePose = new Pose(60, 16, Math.toRadians(21));
     private final Pose pickup1Pose = new Pose(46, 36, Math.toRadians(180));
     private final Pose pickup2Pose = new Pose(46, 60, Math.toRadians(180));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
@@ -71,6 +71,7 @@ public class BlueAuto extends LinearOpMode {
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
+    final double headingConstraint = Math.toRadians(1);
     ElapsedTime llTimer = new ElapsedTime();
     public void buildPaths() {
         scorePreload = new Path(new BezierLine(startPose, scorePose));
@@ -84,6 +85,7 @@ public class BlueAuto extends LinearOpMode {
         scorePickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup1Pose, scorePose))
                 .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose.getHeading())
+                .setHeadingConstraint(headingConstraint)
                 .build();
 
         grabPickup2 = follower.pathBuilder()
@@ -174,6 +176,11 @@ public class BlueAuto extends LinearOpMode {
 
         // --------- STEP 1: SCORE PRELOAD ----------
         follower.followPath(scorePreload);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+        }
+//        added this line to correct heading
+        follower.turnTo(scorePose.getHeading());
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }

@@ -16,11 +16,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(15)
+            .mass(18)
             .forwardZeroPowerAcceleration(-40.8026)
             .lateralZeroPowerAcceleration(-68.02944)
             .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0.0,0.007,0.05))
-            .headingPIDFCoefficients(new PIDFCoefficients(0.9, 0.0, 0.03,0.014))
+            .headingPIDFCoefficients(new PIDFCoefficients(1.2, 0.0, 0.08,0.014))
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025, 0.0,0.000005, 0.06, 0.01))
             .centripetalScaling(0.0005);
     public static PathConstraints pathConstraints = new PathConstraints(
