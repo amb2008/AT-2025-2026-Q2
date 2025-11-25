@@ -28,8 +28,8 @@ import java.util.List;
 public class BlueAuto extends LinearOpMode {
     private Follower follower;
     private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(60, 16, Math.toRadians(10));
-    private final Pose pickup1Pose = new Pose(46, 36, Math.toRadians(180));
+    private final Pose scorePose = new Pose(60, 16, Math.toRadians(11));
+    private final Pose pickup1Pose = new Pose(46, 32, Math.toRadians(180));
     private final Pose pickup2Pose = new Pose(46, 60, Math.toRadians(180));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
     private Path scorePreload;
@@ -71,7 +71,7 @@ public class BlueAuto extends LinearOpMode {
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
-    final double headingConstraint = Math.toRadians(1);
+    final double headingConstraint = Math.toRadians(0.5);
     ElapsedTime llTimer = new ElapsedTime();
     public void buildPaths() {
         scorePreload = new Path(new BezierLine(startPose, scorePose));
