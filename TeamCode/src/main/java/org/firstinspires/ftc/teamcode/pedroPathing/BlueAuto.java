@@ -28,7 +28,7 @@ import java.util.List;
 public class BlueAuto extends LinearOpMode {
     private Follower follower;
     private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(60, 16, Math.toRadians(21));
+    private final Pose scorePose = new Pose(60, 16, Math.toRadians(10));
     private final Pose pickup1Pose = new Pose(46, 36, Math.toRadians(180));
     private final Pose pickup2Pose = new Pose(46, 60, Math.toRadians(180));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
@@ -76,6 +76,7 @@ public class BlueAuto extends LinearOpMode {
     public void buildPaths() {
         scorePreload = new Path(new BezierLine(startPose, scorePose));
         scorePreload.setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading());
+        scorePreload.setHeadingConstraint(headingConstraint);
 
         grabPickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose, pickup1Pose))
@@ -173,17 +174,18 @@ public class BlueAuto extends LinearOpMode {
             lastPos = suzani[servoIndex];
         }
 
-
         // --------- STEP 1: SCORE PRELOAD ----------
         follower.followPath(scorePreload);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+            telemetry.addData("heading", Math.toDegrees(follower.getPose().getHeading()));
+            telemetry.update();
         }
 //        added this line to correct heading
-        follower.turnTo(scorePose.getHeading());
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
+//        scorePreload.setHeadingConstraint(Math.toRadians(2));
+//        while (opModeIsActive() && follower.isBusy()) {
+//            follower.update();
+//        }
 
         sleep(2000);
         outtake();
@@ -463,6 +465,7 @@ public class BlueAuto extends LinearOpMode {
         pidOutput = Math.max(0, Math.min(pidOutput, 1));
         fwl.setPower(pidOutput);
         fwr.setPower(pidOutput);
+        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
         telemetry.addData("Target Velocity", autoFwSpeed);
         telemetry.addData("Left Velocity", leftVelocity);
         telemetry.addData("Right Velocity", rightVelocity);
