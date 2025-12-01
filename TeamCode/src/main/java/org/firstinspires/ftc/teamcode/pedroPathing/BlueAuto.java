@@ -21,14 +21,19 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import static org.firstinspires.ftc.teamcode.CONSTANTS.*;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+
 import java.util.ArrayList;
 import java.util.List;
 
 @Autonomous(name = "Blue Auto",group="Robot")
 public class BlueAuto extends LinearOpMode {
+    GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(60, 16, Math.toRadians(11));
+    private final Pose scorePose = new Pose(60, 16, Math.toRadians(20));
     private final Pose pickup1Pose = new Pose(46, 32, Math.toRadians(180));
     private final Pose pickup2Pose = new Pose(46, 60, Math.toRadians(180));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
@@ -127,6 +132,12 @@ public class BlueAuto extends LinearOpMode {
         limelight.start();
         colorSensor = hardwareMap.get(ColorSensor.class, "colorSensor");
 
+        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+        odo.setOffsets(-175.0, 60, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
+        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.REVERSED);
+        odo.resetPosAndIMU();
+
         fL.setDirection(DcMotor.Direction.FORWARD);
         fL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         fL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -178,7 +189,11 @@ public class BlueAuto extends LinearOpMode {
         follower.followPath(scorePreload);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
-            telemetry.addData("heading", Math.toDegrees(follower.getPose().getHeading()));
+            odo.update();
+            Pose2D pos = odo.getPosition();
+            telemetry.addData("heading deg", Math.toDegrees(follower.getPose().getHeading()));
+            telemetry.addData("heading raw", follower.getPose().getHeading());
+            telemetry.addData("heading odo", pos.getHeading(AngleUnit.DEGREES));
             telemetry.update();
         }
 //        added this line to correct heading
@@ -187,7 +202,10 @@ public class BlueAuto extends LinearOpMode {
 //            follower.update();
 //        }
 
-        sleep(2000);
+//        sleep(20000);
+        sleep(100);
+        headingCorrect(scorePose.getHeading());
+        sleep(100);
         outtake();
 
         // --------- STEP 2: GRAB PICKUP 1 ----------
@@ -204,6 +222,9 @@ public class BlueAuto extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
+        sleep(100);
+        headingCorrect(scorePose.getHeading());
+        sleep(100);
         outtake();
 
 
@@ -451,6 +472,34 @@ public class BlueAuto extends LinearOpMode {
         return Math.sqrt(Math.pow(c1[0] - c2[0], 2) + Math.pow(c1[1] - c2[1], 2) + Math.pow(c1[2] - c2[2], 2));
     }
 
+    private void headingCorrect(double target){
+        odo.update();
+        Pose2D pos = odo.getPosition();
+        double error = target-pos.getHeading(AngleUnit.DEGREES);
+        while (Math.abs(error)>2){
+            odo.update();
+            pos = odo.getPosition();
+            error = target-pos.getHeading(AngleUnit.DEGREES);
+            double yawVel = 0;
+            if (error < -2){
+                yawVel = 0.1;
+            } else if (error > 2){
+                yawVel = -0.1;
+            }
+
+            fL.setPower(yawVel);
+            fR.setPower(-yawVel);
+            bL.setPower(yawVel);
+            bR.setPower(-yawVel);
+
+            telemetry.addData("target", target);
+            telemetry.addData("heading", pos.getHeading(AngleUnit.DEGREES));
+            telemetry.addData("yaw", yaw);
+            telemetry.update();
+        }
+    }
+
+
     private void fwOn(){
         double leftVelocity  = fwl.getVelocity();
         double rightVelocity = fwr.getVelocity();
@@ -465,12 +514,12 @@ public class BlueAuto extends LinearOpMode {
         pidOutput = Math.max(0, Math.min(pidOutput, 1));
         fwl.setPower(pidOutput);
         fwr.setPower(pidOutput);
-        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("Target Velocity", autoFwSpeed);
-        telemetry.addData("Left Velocity", leftVelocity);
-        telemetry.addData("Right Velocity", rightVelocity);
-        telemetry.addData("Average Velocity", avgVelocity);
-        telemetry.addData("PID Output", pidOutput);
+        follower.update();
+        odo.update();
+        Pose2D pos = odo.getPosition();
+        telemetry.addData("heading deg", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("heading raw", follower.getPose().getHeading());
+        telemetry.addData("heading odo", pos.getHeading(AngleUnit.DEGREES));
         telemetry.update();
     }
 
