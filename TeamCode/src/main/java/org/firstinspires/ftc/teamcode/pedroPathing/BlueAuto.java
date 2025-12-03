@@ -354,21 +354,25 @@ public class BlueAuto extends LinearOpMode {
 //        dumbMove();
 //        sleep(500);
 //        off();
-        moveRelative(-4, 0);
+//        moveRelative(-4, 0);
+        driveRelativeX(-4);
         sleep(1000);
 
 //        axial = AutoSlow;
 //        dumbMove();
 //        sleep(500);
 //        off();
-        moveRelative(-4, 0);
+//        moveRelative(-4, 0);
+        driveRelativeX(-4);
         sleep(1000);
 
 //        axial = AutoSlow;
 //        dumbMove();
 //        sleep(800);
 //        off();
-        moveRelative(-10, 0);
+//        moveRelative(-10, 0);
+        driveRelativeX(-10);
+        sleep(1000);
         intakeDone = true;
     }
 
@@ -523,6 +527,39 @@ public class BlueAuto extends LinearOpMode {
         follower.followPath(p);
         while (opModeIsActive() && follower.isBusy()) follower.update();
     }
+
+    public void driveRelativeX(double inches) {
+        // Update odometry to get starting pose
+        odo.update();
+        double startX = odo.getPosition().getX(DistanceUnit.INCH);   // inches
+        double targetX = startX + inches;
+        // Loop until we reach target or timeout
+        while (opModeIsActive()) {
+            odo.update();
+            double currentX = odo.getPosition().getX(DistanceUnit.INCH);
+            double error = targetX - currentX;
+
+            // Stop when close enough
+            if (Math.abs(error) < 0.2) {
+                break;
+            }
+
+            // Scale power as you approach the target (smooth stop)
+            double power = -0.1*Math.signum(error);   // apply sign
+            // Mecanum pure strafe
+            fL.setPower(power);
+            fR.setPower(power);
+            bL.setPower(power);
+            bR.setPower(power);
+        }
+
+        // Stop the robot
+        fL.setPower(0);
+        fR.setPower(0);
+        bL.setPower(0);
+        bR.setPower(0);
+    }
+
 
 
 
