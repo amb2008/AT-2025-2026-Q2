@@ -189,12 +189,6 @@ public class BlueAuto extends LinearOpMode {
         follower.followPath(scorePreload);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
-            odo.update();
-            Pose2D pos = odo.getPosition();
-            telemetry.addData("heading deg", Math.toDegrees(follower.getPose().getHeading()));
-            telemetry.addData("heading raw", follower.getPose().getHeading());
-            telemetry.addData("heading odo", pos.getHeading(AngleUnit.DEGREES));
-            telemetry.update();
         }
 //        added this line to correct heading
 //        scorePreload.setHeadingConstraint(Math.toRadians(2));
@@ -224,6 +218,7 @@ public class BlueAuto extends LinearOpMode {
         }
         sleep(100);
         headingCorrect(scorePose.getHeading());
+//        headingCorrect(Math.toDegrees(scorePose.getHeading()));
         sleep(100);
         outtake();
 
@@ -355,22 +350,25 @@ public class BlueAuto extends LinearOpMode {
             }
         }).start();
 
-        axial = AutoSlow;
-        dumbMove();
-        sleep(500);
-        off();
+//        axial = AutoSlow;
+//        dumbMove();
+//        sleep(500);
+//        off();
+        moveRelative(-4, 0);
         sleep(1000);
 
-        axial = AutoSlow;
-        dumbMove();
-        sleep(500);
-        off();
+//        axial = AutoSlow;
+//        dumbMove();
+//        sleep(500);
+//        off();
+        moveRelative(-4, 0);
         sleep(1000);
 
-        axial = AutoSlow;
-        dumbMove();
-        sleep(800);
-        off();
+//        axial = AutoSlow;
+//        dumbMove();
+//        sleep(800);
+//        off();
+        moveRelative(-10, 0);
         intakeDone = true;
     }
 
@@ -473,6 +471,7 @@ public class BlueAuto extends LinearOpMode {
     }
 
     private void headingCorrect(double target){
+        target = Math.toDegrees(target);
         odo.update();
         Pose2D pos = odo.getPosition();
         double error = target-pos.getHeading(AngleUnit.DEGREES);
@@ -480,11 +479,20 @@ public class BlueAuto extends LinearOpMode {
             odo.update();
             pos = odo.getPosition();
             error = target-pos.getHeading(AngleUnit.DEGREES);
+            if (Math.abs(error) > error+360){
+                error = error + 360;
+            }
+            if (Math.abs(error-360) < error){
+                error = error - 360;
+            }
+
             double yawVel = 0;
             if (error < -2){
                 yawVel = 0.1;
             } else if (error > 2){
                 yawVel = -0.1;
+            } else {
+                yawVel = 0;
             }
 
             fL.setPower(yawVel);
@@ -494,10 +502,28 @@ public class BlueAuto extends LinearOpMode {
 
             telemetry.addData("target", target);
             telemetry.addData("heading", pos.getHeading(AngleUnit.DEGREES));
-            telemetry.addData("yaw", yaw);
+            telemetry.addData("error", error);
             telemetry.update();
         }
+        double yawVel = 0;
+        fL.setPower(yawVel);
+        fR.setPower(-yawVel);
+        bL.setPower(yawVel);
+        bR.setPower(-yawVel);
     }
+
+    public void moveRelative(double dx, double dy) {
+        follower.update();
+        Pose curr = follower.getPose();
+        Pose target = new Pose(curr.getX() + dx, curr.getY() + dy, curr.getHeading());
+
+        Path p = new Path(new BezierLine(curr, target));
+        p.setLinearHeadingInterpolation(curr.getHeading(), curr.getHeading());
+
+        follower.followPath(p);
+        while (opModeIsActive() && follower.isBusy()) follower.update();
+    }
+
 
 
     private void fwOn(){
@@ -517,10 +543,8 @@ public class BlueAuto extends LinearOpMode {
         follower.update();
         odo.update();
         Pose2D pos = odo.getPosition();
-        telemetry.addData("heading deg", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("heading raw", follower.getPose().getHeading());
-        telemetry.addData("heading odo", pos.getHeading(AngleUnit.DEGREES));
-        telemetry.update();
+//        telemetry.addData("heading deg", Math.toDegrees(follower.getPose().getHeading()));
+//        telemetry.update();
     }
 
     private void fwOff(){
