@@ -33,7 +33,7 @@ public class BlueAuto extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(60, 16, Math.toRadians(20));
+    private final Pose scorePose = new Pose(60, 16, Math.toRadians(21));
     private final Pose pickup1Pose = new Pose(46, 32, Math.toRadians(180));
     private final Pose pickup2Pose = new Pose(46, 60, Math.toRadians(180));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
@@ -69,6 +69,7 @@ public class BlueAuto extends LinearOpMode {
     private boolean firstIntake = false;
     private boolean needPattern = true;
     private boolean intakeDone = false;
+    private boolean correctionDone = false;
     private double lastPos = suzani[servoIndex];
 
 //    FLYWHEEL
@@ -201,7 +202,6 @@ public class BlueAuto extends LinearOpMode {
         headingCorrect(scorePose.getHeading());
         sleep(100);
         outtake();
-
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -209,8 +209,12 @@ public class BlueAuto extends LinearOpMode {
             follower.update();
             shoot = false;
         }
+        sleep(100);
+        headingCorrect(pickup1Pose.getHeading());
+        sleep(100);
+        correctionDone = true;
         intakeMacro();
-
+        correctionDone = false;
         // --------- STEP 3: SCORE PICKUP 1 ----------
         follower.followPath(scorePickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -220,8 +224,10 @@ public class BlueAuto extends LinearOpMode {
         headingCorrect(scorePose.getHeading());
 //        headingCorrect(Math.toDegrees(scorePose.getHeading()));
         sleep(100);
+        correctionDone = true;
         outtake();
-
+        correctionDone = false;
+        sleep(500);
 
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
@@ -236,6 +242,10 @@ public class BlueAuto extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
+        sleep(100);
+        headingCorrect(pickup2Pose.getHeading());
+        sleep(100);
+
         outtake();
 
 
@@ -317,13 +327,13 @@ public class BlueAuto extends LinearOpMode {
         for (int i = 0; i < servoSequence.size(); i++) {
             double servoPos = servoSequence.get(i);
             sorting1.setPosition(servoPos);
-            if (opModeIsActive() && runtime.seconds()<29) {
+            if (opModeIsActive() && runtime.seconds()<29.5) {
                 if (Math.abs(lastPos - servoPos) > 0.4) {
-                    sleep(3000);
+                    sleep(2000);
                 } else {
-                    sleep(2500);
+                    sleep(1500);
                 }
-                if (opModeIsActive() && runtime.seconds()<29) {
+                if (opModeIsActive() && runtime.seconds()<29.5) {
                     sorting2.setPosition(wackUp);
                     sleep(400);
                     sorting2.setPosition(wackDown);
@@ -350,29 +360,11 @@ public class BlueAuto extends LinearOpMode {
             }
         }).start();
 
-//        axial = AutoSlow;
-//        dumbMove();
-//        sleep(500);
-//        off();
-//        moveRelative(-4, 0);
+        driveRelativeX(-5);
+        sleep(500);
         driveRelativeX(-4);
-        sleep(1000);
-
-//        axial = AutoSlow;
-//        dumbMove();
-//        sleep(500);
-//        off();
-//        moveRelative(-4, 0);
-        driveRelativeX(-4);
-        sleep(1000);
-
-//        axial = AutoSlow;
-//        dumbMove();
-//        sleep(800);
-//        off();
-//        moveRelative(-10, 0);
-        driveRelativeX(-10);
-        sleep(1000);
+        sleep(500);
+        driveRelativeX(-8);
         intakeDone = true;
     }
 
@@ -415,6 +407,7 @@ public class BlueAuto extends LinearOpMode {
             lastBallColor = ballColor;
             // Store color in current slot
             slotColors[servoIndex] = ballColor;
+
             new Thread(() -> {
                 sleep(10);
                 if (servoIndex < 2) {
@@ -479,7 +472,7 @@ public class BlueAuto extends LinearOpMode {
         odo.update();
         Pose2D pos = odo.getPosition();
         double error = target-pos.getHeading(AngleUnit.DEGREES);
-        while (Math.abs(error)>2){
+        while (Math.abs(error)>4 && !correctionDone){
             odo.update();
             pos = odo.getPosition();
             error = target-pos.getHeading(AngleUnit.DEGREES);
@@ -491,13 +484,19 @@ public class BlueAuto extends LinearOpMode {
             }
 
             double yawVel = 0;
-            if (error < -2){
+
+            if (error < -5) {
+                yawVel = 0.25;
+            } else if (error > 5) {
+                yawVel = -0.25;
+            } else if (error < -2) {
                 yawVel = 0.1;
-            } else if (error > 2){
+            } else if (error > 2) {
                 yawVel = -0.1;
             } else {
                 yawVel = 0;
             }
+
 
             fL.setPower(yawVel);
             fR.setPower(-yawVel);
@@ -580,8 +579,11 @@ public class BlueAuto extends LinearOpMode {
         follower.update();
         odo.update();
         Pose2D pos = odo.getPosition();
-//        telemetry.addData("heading deg", Math.toDegrees(follower.getPose().getHeading()));
-//        telemetry.update();
+
+        telemetry.addData("slot 0", slotColors[0]);
+        telemetry.addData("slot 1", slotColors[1]);
+        telemetry.addData("slot 2", slotColors[2]);
+        telemetry.update();
     }
 
     private void fwOff(){
