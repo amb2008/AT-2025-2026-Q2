@@ -69,7 +69,6 @@ public class BlueAuto extends LinearOpMode {
     private boolean firstIntake = false;
     private boolean needPattern = true;
     private boolean intakeDone = false;
-    private boolean correctionDone = false;
     private double lastPos = suzani[servoIndex];
 
 //    FLYWHEEL
@@ -191,30 +190,24 @@ public class BlueAuto extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-
         sleep(100);
-        headingCorrect(Math.toRadians(68));
-        correctionDone = true;
+        headingCorrect(scorePose.getHeading());
+//        headingCorrect(Math.toRadians(90)-scorePose.getHeading());
         sleep(100);
         outtake();
-        correctionDone = false;
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
             fwOn();
             follower.update();
             shoot = false;
-            telemetry.addLine("POS 1");
-            telemetry.update();
         }
 
         sleep(100);
         headingCorrect(pickup1Pose.getHeading());
         sleep(500);
-        correctionDone = true;
         intakeMacro();
         sleep(500);
-        correctionDone = false;
         // --------- STEP 3: SCORE PICKUP 1 ----------
         follower.followPath(scorePickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -223,16 +216,12 @@ public class BlueAuto extends LinearOpMode {
         sleep(100);
         headingCorrect(scorePose.getHeading());
         sleep(100);
-        correctionDone = true;
         outtake();
-        correctionDone = false;
         sleep(500);
 
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
-            telemetry.addLine("POS 2");
-            telemetry.update();
             follower.update();
         }
         sleep(500);
@@ -247,7 +236,6 @@ public class BlueAuto extends LinearOpMode {
         sleep(100);
         headingCorrect(pickup2Pose.getHeading());
         sleep(100);
-        correctionDone = true;
         outtake();
 
 
@@ -364,9 +352,9 @@ public class BlueAuto extends LinearOpMode {
 
         driveRelativeX(-5);
         sleep(500);
-        driveRelativeX(-4);
+        driveRelativeX(-3);
         sleep(500);
-        driveRelativeX(-8);
+        driveRelativeX(-14);
         intakeDone = true;
     }
 
@@ -472,18 +460,12 @@ public class BlueAuto extends LinearOpMode {
     // Robust heading correction (drop into your class). targetHeadingRad is radians.
     private void headingCorrect(double targetHeadingRad) {
         final double kP = 0.012;         // tune: proportional gain (start small)
-        final double yawTolRad = Math.toRadians(1.0);  // stop within ~1 degree
+        final double yawTolRad = Math.toRadians(2.0);  // stop within ~1 degree
         final double maxPower = 0.35;    // max wheel power used for rotation (tune)
-        final long timeoutMs = 1500;     // safety timeout in ms
+        final long timeoutMs = 10500;     // safety timeout in ms
 
         // get current time for timeout
         long start = System.currentTimeMillis();
-
-        // Keep the follower or other threads from overriding outputs.
-        // Option A (preferred): ensure background threads do NOT call follower.update().
-        // Option B: set a flag that tells other threads to pause writing drive outputs.
-        // I'll use a simple boolean 'correctionRunning' approach here:
-        correctionDone = false;   // use this flag to indicate we're running correction
 
         while (opModeIsActive()) {
             // timeout safety
@@ -501,36 +483,33 @@ public class BlueAuto extends LinearOpMode {
             double yawErr = Math.atan2(Math.sin(targetHeadingRad - currYaw),
                     Math.cos(targetHeadingRad - currYaw));
 
-            telemetry.addData("HC target(deg)", Math.toDegrees(targetHeadingRad));
-            telemetry.addData("HC curr(deg)", Math.toDegrees(currYaw));
-            telemetry.addData("HC err(deg)", Math.toDegrees(yawErr));
-
             // stop condition
             if (Math.abs(yawErr) <= yawTolRad) {
                 break;
             }
 
             // P controller -> wheel power (sign convention: positive yawErr => rotate positive)
-            double power = kP * yawErr;
+            double power = -kP * yawErr;
             // clip and ensure minimum deadband
             power = Math.max(-maxPower, Math.min(maxPower, power));
 
             // If power is very small, push it to a minimum to overcome static friction
-            double minPower = 0.06;
+            double minPower = 0.1;
             if (Math.abs(power) > 0 && Math.abs(power) < minPower) {
                 power = Math.copySign(minPower, power);
             }
 
-            // Apply rotation: mecanum in-place rotation
-            // For setPower use same sign pattern you currently use
+            telemetry.addData("target", Math.toDegrees(targetHeadingRad));
+            telemetry.addData("yaw", Math.toDegrees(currYaw));
+            telemetry.addData("error", Math.toDegrees(yawErr));
+            telemetry.update();
+
             fL.setPower(power);
             fR.setPower(-power);
             bL.setPower(power);
             bR.setPower(-power);
 
             telemetry.update();
-
-            // short sleep to let action take effect and avoid busy looping
             sleep(12);
         }
 
@@ -539,7 +518,6 @@ public class BlueAuto extends LinearOpMode {
         fR.setPower(0);
         bL.setPower(0);
         bR.setPower(0);
-        correctionDone = true;
         telemetry.addLine("headingCorrect done");
         telemetry.update();
     }
