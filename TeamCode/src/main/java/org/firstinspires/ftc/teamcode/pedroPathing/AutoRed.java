@@ -5,14 +5,12 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -28,19 +26,19 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "Blue Auto",group="Robot")
-public class BlueAuto extends LinearOpMode {
+@Autonomous(name = "Grant Popick: Red Auto",group="Robot")
+public class AutoRed extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
-    private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(60, 16, Math.toRadians(21));
-    private final Pose pickup1Pose = new Pose(46, 32, Math.toRadians(180));
-    private final Pose pickup2Pose = new Pose(46, 60, Math.toRadians(180));
-    private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
+    private final Pose startPose = new Pose(87, 9, Math.toRadians(90));
+    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-23));
+    private final Pose pickup1Pose = new Pose(98, 28, Math.toRadians(0));
+    private final Pose pickup2Pose = new Pose(98, 55, Math.toRadians(0));
+    private final Pose pickup3Pose = new Pose(98, 81, Math.toRadians(0));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
-//    NON PEDRO
+    //    NON PEDRO
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotorEx fL = null;
     private DcMotorEx bL = null;
@@ -71,7 +69,7 @@ public class BlueAuto extends LinearOpMode {
     private boolean intakeDone = false;
     private double lastPos = suzani[servoIndex];
 
-//    FLYWHEEL
+    //    FLYWHEEL
     PIDController pid = new PIDController(0.0115, 0.0, 0.0);
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
@@ -315,6 +313,11 @@ public class BlueAuto extends LinearOpMode {
             }
         }
         for (int i = 0; i < servoSequence.size(); i++) {
+            telemetry.addData("slot 0", slotColors[0]);
+            telemetry.addData("slot 1", slotColors[1]);
+            telemetry.addData("slot 1", slotColors[2]);
+            telemetry.update();
+
             double servoPos = servoSequence.get(i);
             sorting1.setPosition(servoPos);
             if (opModeIsActive() && runtime.seconds()<29.5) {
@@ -327,7 +330,7 @@ public class BlueAuto extends LinearOpMode {
                     sorting2.setPosition(wackUp);
                     sleep(400);
                     sorting2.setPosition(wackDown);
-                    sleep(140);
+                    sleep(200);
                     lastPos = servoPos;
                 }
             }
@@ -350,12 +353,15 @@ public class BlueAuto extends LinearOpMode {
             }
         }).start();
 
-        driveRelativeX(-5);
+        driveRelativeX(5);
         sleep(500);
-        driveRelativeX(-3);
+        driveRelativeX(3);
         sleep(500);
-        driveRelativeX(-14);
-        intakeDone = true;
+        driveRelativeX(14);
+        new Thread(()->{
+            sleep(1000);
+            intakeDone = true;
+        }).start();
     }
 
     private void dumbMove(){
@@ -393,7 +399,7 @@ public class BlueAuto extends LinearOpMode {
         } else if (intakeReady) {
             intake1.setPower(0);
             intakeReady = false;
-            ballColor = checkColor();
+//            ballColor = checkColor();
             lastBallColor = ballColor;
             // Store color in current slot
             slotColors[servoIndex] = ballColor;
@@ -509,7 +515,6 @@ public class BlueAuto extends LinearOpMode {
             bL.setPower(power);
             bR.setPower(-power);
 
-            telemetry.update();
             sleep(12);
         }
 
@@ -552,7 +557,7 @@ public class BlueAuto extends LinearOpMode {
             }
 
             // Scale power as you approach the target (smooth stop)
-            double power = -0.1*Math.signum(error);   // apply sign
+            double power = 0.1*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);
