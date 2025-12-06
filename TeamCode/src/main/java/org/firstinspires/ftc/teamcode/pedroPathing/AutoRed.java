@@ -320,13 +320,13 @@ public class AutoRed extends LinearOpMode {
 
             double servoPos = servoSequence.get(i);
             sorting1.setPosition(servoPos);
-            if (opModeIsActive() && runtime.seconds()<29.5) {
+            if (opModeIsActive()) {
                 if (Math.abs(lastPos - servoPos) > 0.4) {
                     sleep(2000);
                 } else {
                     sleep(1500);
                 }
-                if (opModeIsActive() && runtime.seconds()<29.5) {
+                if (opModeIsActive()) {
                     sorting2.setPosition(wackUp);
                     sleep(400);
                     sorting2.setPosition(wackDown);
