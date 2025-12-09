@@ -31,8 +31,8 @@ public class AutoBlue9 extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(56, 16, Math.toRadians(20));
-    private final Pose scorePose2 = new Pose(56, 21, Math.toRadians(20));
+    private final Pose scorePose = new Pose(56, 15, Math.toRadians(20));
+    private final Pose scorePose2 = new Pose(56, 22, Math.toRadians(20));
     private final Pose pickup1Pose = new Pose(46, 32, Math.toRadians(180));
     private final Pose pickup2Pose = new Pose(44, 56, Math.toRadians(180));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
@@ -68,6 +68,7 @@ public class AutoBlue9 extends LinearOpMode {
     private boolean needPattern = true;
     private boolean intakeDone = false;
     private double lastPos = suzani[servoIndex];
+    private double count = 0;
 
     //    FLYWHEEL
     PIDController pid = new PIDController(0.0115, 0.0, 0.0);
@@ -170,7 +171,7 @@ public class AutoBlue9 extends LinearOpMode {
         follower.setStartingPose(startPose);
 
         waitForStart();
-        pid.setSetpoint(autoFwSpeed);
+        pid.setSetpoint(autoFwSpeed2);
         new Thread(()->{
             while (opModeIsActive()){
                 fwOn();
@@ -180,7 +181,6 @@ public class AutoBlue9 extends LinearOpMode {
         while (opModeIsActive() && needPattern){
             checkPattern();
             susanNext();
-            lastPos = suzani[servoIndex];
         }
 
         // --------- STEP 1: SCORE PRELOAD ----------
@@ -189,7 +189,9 @@ public class AutoBlue9 extends LinearOpMode {
             follower.update();
         }
         headingCorrect(scorePose.getHeading());
+        sleep(1200);
         outtake();
+        count += 1;
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -203,9 +205,9 @@ public class AutoBlue9 extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-        susanNext();
         headingCorrect(scorePose2.getHeading());
         outtake();
+        count += 1;
 
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
@@ -220,7 +222,6 @@ public class AutoBlue9 extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-        susanNext();
         headingCorrect(scorePose2.getHeading());
         outtake();
 
@@ -277,71 +278,206 @@ public class AutoBlue9 extends LinearOpMode {
 
     private void outtake() {
         sorting2.setPosition(wackDown);
-        List<Double> servoSequence = new ArrayList<>();
-        boolean[] used = new boolean[slotColors.length];
-        for (String targetColor : pattern) {
-            for (int i = 0; i < slotColors.length; i++) {
-                if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-                    servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
-                    used[i] = true;                // mark slot as used
-                    break;                         // move on to next pattern color
-                }
-            }
-        }
-        for (int i = 0; i < slotColors.length; i++) {
-            if (!used[i]) {
-                servoSequence.add(suzano[i]);
-                used[i] = true;
-            }
-        }
-        for (int i = 0; i < servoSequence.size(); i++) {
+        List<Double> servoSequence = sequence();
+        // --- Perform outtake motion ---
+        for (double servoPos : servoSequence) {
+
             telemetry.addData("slot 0", slotColors[0]);
             telemetry.addData("slot 1", slotColors[1]);
-            telemetry.addData("slot 1", slotColors[2]);
+            telemetry.addData("slot 2", slotColors[2]);
             telemetry.update();
 
-            double servoPos = servoSequence.get(i);
             sorting1.setPosition(servoPos);
+
             if (opModeIsActive()) {
                 if (Math.abs(lastPos - servoPos) > 0.4) {
-                    sleep(1300);
-                } else if (lastPos != servoPos){
-                    sleep(600);
+                    sleep(1900);
+                } else if (lastPos != servoPos) {
+                    sleep(700);
                 }
-                if (opModeIsActive()) {
-                    sorting2.setPosition(wackUp);
-                    sleep(380);
-                    sorting2.setPosition(wackDown);
-                    sleep(200);
-                    lastPos = servoPos;
-                }
+
+                sorting2.setPosition(wackUp);
+                sleep(370);
+                sorting2.setPosition(wackDown);
+                sleep(200);
+
+                lastPos = servoPos;
             }
         }
-        servoIndex=0;
+
+        // Reset
+        servoIndex = 0;
         slotColors[0] = "Empty";
         slotColors[1] = "Empty";
         slotColors[2] = "Empty";
     }
 
-    private void susanNext(){
-        List<Double> servoSequence = new ArrayList<>();
-        boolean[] used = new boolean[slotColors.length];
-        for (String targetColor : pattern) {
-            for (int i = 0; i < slotColors.length; i++) {
-                if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-                    servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
-                    used[i] = true;                // mark slot as used
-                    break;                         // move on to next pattern color
-                }
-            }
+    private void generatePermutations(List<Integer> arr, int k, List<List<Integer>> out) {
+        if (k == arr.size()) {
+            out.add(new ArrayList<>(arr));
+            return;
         }
+        for (int i = k; i < arr.size(); i++) {
+            int temp = arr.get(k);
+            arr.set(k, arr.get(i));
+            arr.set(i, temp);
+
+            generatePermutations(arr, k + 1, out);
+
+            temp = arr.get(k);
+            arr.set(k, arr.get(i));
+            arr.set(i, temp);
+        }
+    }
+
+    private List<Double> sequence(){
+        List<Integer> slotIndices = new ArrayList<>();
         for (int i = 0; i < slotColors.length; i++) {
-            if (!used[i]) {
-                servoSequence.add(suzano[i]);
-                used[i] = true;
+            if (!slotColors[i].equalsIgnoreCase("Empty"))
+                slotIndices.add(i);
+        }
+
+        // Convert pattern into list for assignment
+        List<String> patternList = new ArrayList<>();
+        for (String p : pattern) patternList.add(p);
+
+        // --- Generate all permutations of slot indices ---
+        List<List<Integer>> permutations = new ArrayList<>();
+        generatePermutations(slotIndices, 0, permutations);
+
+        double bestCost = Double.MAX_VALUE;
+        List<Integer> bestPerm = slotIndices;  // fallback if nothing matches well
+
+        // --- Evaluate each permutation ---
+        for (List<Integer> perm : permutations) {
+            double cost = 0;
+            double currentPos = lastPos;
+            boolean valid = true;
+
+            for (int i = 0; i < patternList.size(); i++) {
+                String targetColor = patternList.get(i);
+                int slotIndex = 0;
+                if (perm.size() > 0){
+                    slotIndex = perm.get(i % perm.size());  // safe wrap if mismatch
+                } else {
+                    break;
+                }
+
+                if (!slotColors[slotIndex].equalsIgnoreCase(targetColor)) {
+                    valid = false;
+                    break;
+                }
+
+                double nextPos = suzano[slotIndex];
+                if (i>0){
+                    cost += Math.abs(nextPos - currentPos);
+                }
+                currentPos = nextPos;
+            }
+
+            if (valid && cost < bestCost) {
+                bestCost = cost;
+                bestPerm = new ArrayList<>(perm);
             }
         }
 
+        // --- Build servo sequence from winning permutation ---
+        List<Double> servoSequence = new ArrayList<>();
+        if (bestCost>5){
+            boolean[] used = new boolean[slotColors.length];
+            for (String targetColor : pattern) {
+                for (int i = 0; i < slotColors.length; i++) {
+                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
+                        servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
+                        used[i] = true;                // mark slot as used
+                        break;                         // move on to next pattern color
+                    }
+                }
+            }
+            for (int i = 0; i < slotColors.length; i++) {
+                if (!used[i]) {
+                    servoSequence.add(suzano[i]);
+                    used[i] = true;
+                }
+            }
+        } else {
+            for (int idx : bestPerm) {
+                servoSequence.add(suzano[idx]);
+            }
+        }
+
+        return servoSequence;
+    }
+
+
+
+//    private void outtake() {
+//        sorting2.setPosition(wackDown);
+//        List<Double> servoSequence = new ArrayList<>();
+//        boolean[] used = new boolean[slotColors.length];
+//        for (String targetColor : pattern) {
+//            for (int i = 0; i < slotColors.length; i++) {
+//                if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
+//                    servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
+//                    used[i] = true;                // mark slot as used
+//                    break;                         // move on to next pattern color
+//                }
+//            }
+//        }
+//        for (int i = 0; i < slotColors.length; i++) {
+//            if (!used[i]) {
+//                servoSequence.add(suzano[i]);
+//                used[i] = true;
+//            }
+//        }
+//        for (int i = 0; i < servoSequence.size(); i++) {
+//            telemetry.addData("slot 0", slotColors[0]);
+//            telemetry.addData("slot 1", slotColors[1]);
+//            telemetry.addData("slot 1", slotColors[2]);
+//            telemetry.update();
+//
+//            double servoPos = servoSequence.get(i);
+//            sorting1.setPosition(servoPos);
+//            if (opModeIsActive()) {
+//                if (Math.abs(lastPos - servoPos) > 0.4) {
+//                    sleep(1300);
+//                } else if (lastPos != servoPos){
+//                    sleep(600);
+//                }
+//                if (opModeIsActive()) {
+//                    sorting2.setPosition(wackUp);
+//                    sleep(380);
+//                    sorting2.setPosition(wackDown);
+//                    sleep(200);
+//                    lastPos = servoPos;
+//                }
+//            }
+//        }
+//        servoIndex=0;
+//        slotColors[0] = "Empty";
+//        slotColors[1] = "Empty";
+//        slotColors[2] = "Empty";
+//    }
+
+    private void susanNext(){
+//        List<Double> servoSequence = new ArrayList<>();
+//        boolean[] used = new boolean[slotColors.length];
+//        for (String targetColor : pattern) {
+//            for (int i = 0; i < slotColors.length; i++) {
+//                if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
+//                    servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
+//                    used[i] = true;                // mark slot as used
+//                    break;                         // move on to next pattern color
+//                }
+//            }
+//        }
+//        for (int i = 0; i < slotColors.length; i++) {
+//            if (!used[i]) {
+//                servoSequence.add(suzano[i]);
+//                used[i] = true;
+//            }
+//        }
+        List<Double> servoSequence = sequence();
         double servoPos = servoSequence.get(0);
         sorting1.setPosition(servoPos);
         lastPos = servoPos;
@@ -360,14 +496,21 @@ public class AutoBlue9 extends LinearOpMode {
         }).start();
 
         driveRelativeX(-3);
-        sleep(100);
-        driveRelativeX(-3);
-        sleep(50);
-        driveRelativeX(-15);
-        sleep(100);
+        if (count < 2){
+            sleep(100);
+            driveRelativeX(-3);
+            sleep(50);
+            driveRelativeX(-16);
+            sleep(200);
+        } else {
+            driveRelativeX(-8);
+            sleep(400);
+        }
         new Thread(()->{
             sleep(1000);
             intakeDone = true;
+            sleep(500);
+            susanNext();
         }).start();
     }
 
@@ -422,7 +565,6 @@ public class AutoBlue9 extends LinearOpMode {
             green /= sum;
             blue /= sum;
         }
-
         // Compare with *normalized* reference colors
         double purpleDistance = colorDistance(new double[]{red, green, blue}, purpleBall);
         double greenDistance = colorDistance(new double[]{red, green, blue}, greenBall);
@@ -551,7 +693,7 @@ public class AutoBlue9 extends LinearOpMode {
 
         double pidOutput = pid.update(avgVelocity);
         // Feedforward based on max motor velocity
-        double feedforward = autoFwSpeed / MAX_VELOCITY;
+        double feedforward = autoFwSpeed2 / MAX_VELOCITY;
         pidOutput += feedforward;
 
         // Clip to [0,1]

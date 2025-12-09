@@ -5,6 +5,7 @@ public class CONSTANTS {
 
     public static final double fwSpeed = 1090;
     public static final double autoFwSpeed = 1120;
+    public static final double autoFwSpeed2 = 1125;
     public static final double intakeSpeed = 0.9;
     public static final double dpadSpeed = 0.4;
     public static final double wackUp = 0.48;
@@ -25,7 +26,7 @@ public class CONSTANTS {
     //    BLUE
     public static final double blueX = 1.0;
     public static final double blueY = -0.5;
-    public static final double blueYaw = Math.toRadians(-72);
+    public static final double blueYaw = Math.toRadians(-69);
     public static final double blueInX = 1.5;
     public static final double blueInY = -1.5;
     public static final double blueInYaw = Math.toRadians(90);
