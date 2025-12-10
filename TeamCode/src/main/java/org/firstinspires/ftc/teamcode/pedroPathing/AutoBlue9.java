@@ -206,6 +206,7 @@ public class AutoBlue9 extends LinearOpMode {
             follower.update();
         }
         headingCorrect(scorePose2.getHeading());
+        sleep(200);
         outtake();
         count += 1;
 
@@ -293,7 +294,7 @@ public class AutoBlue9 extends LinearOpMode {
                 if (Math.abs(lastPos - servoPos) > 0.4) {
                     sleep(1900);
                 } else if (lastPos != servoPos) {
-                    sleep(700);
+                    sleep(900);
                 }
 
                 sorting2.setPosition(wackUp);
@@ -333,8 +334,8 @@ public class AutoBlue9 extends LinearOpMode {
     private List<Double> sequence(){
         List<Integer> slotIndices = new ArrayList<>();
         for (int i = 0; i < slotColors.length; i++) {
-            if (!slotColors[i].equalsIgnoreCase("Empty"))
-                slotIndices.add(i);
+//            if (!slotColors[i].equalsIgnoreCase("Empty"))
+            slotIndices.add(i);
         }
 
         // Convert pattern into list for assignment
@@ -493,6 +494,15 @@ public class AutoBlue9 extends LinearOpMode {
                 intake();
                 telemetry.addLine("INTAKING");
             }
+            if (count == 1){
+                slotColors[0] = "Green";
+                slotColors[1] = "Purple";
+                slotColors[2] = "Purple";
+            } else if (count == 2){
+                slotColors[0] = "Purple";
+                slotColors[1] = "Green";
+                slotColors[2] = "Purple";
+            }
         }).start();
 
         driveRelativeX(-3);
@@ -500,16 +510,15 @@ public class AutoBlue9 extends LinearOpMode {
             sleep(100);
             driveRelativeX(-3);
             sleep(50);
-            driveRelativeX(-16);
+            driveRelativeX(-17);
             sleep(200);
         } else {
-            driveRelativeX(-8);
-            sleep(400);
+            driveRelativeX(-6);
+            sleep(100);
         }
         new Thread(()->{
             sleep(1000);
             intakeDone = true;
-            sleep(500);
             susanNext();
         }).start();
     }
@@ -594,7 +603,7 @@ public class AutoBlue9 extends LinearOpMode {
     private void headingCorrect(double targetHeadingRad) {
         final double kP = 1.5;
         final double yawTolRad = Math.toRadians(2.0);  // stop within ~1 degree
-        final double maxPower = 0.5;    // max wheel power used for rotation (tune)
+        final double maxPower = 0.4;    // max wheel power used for rotation (tune)
         final long timeoutMs = 5000;     // safety timeout in ms
         long start = System.currentTimeMillis();
 
@@ -648,6 +657,7 @@ public class AutoBlue9 extends LinearOpMode {
         bL.setPower(0);
         bR.setPower(0);
         telemetry.addLine("headingCorrect done");
+        telemetry.addLine("AT is the best! - Jonah");
         telemetry.update();
     }
 
