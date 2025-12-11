@@ -6,6 +6,7 @@ public class CONSTANTS {
     public static final double fwSpeed = 1090;
     public static final double autoFwSpeed = 1120;
     public static final double autoFwSpeed2 = 1120;
+    public static final double autoCloseFwSpeed = 900;
     public static final double intakeSpeed = 0.9;
     public static final double dpadSpeed = 0.4;
     public static final double wackUp = 0.48;
