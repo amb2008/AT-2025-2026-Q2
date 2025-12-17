@@ -31,10 +31,10 @@ public class BlueCloseAuto extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
-    private final Pose scorePose = new Pose(59, 94, Math.toRadians(47));
+    private final Pose scorePose = new Pose(59, 94, Math.toRadians(48));
     private final Pose scorePose2 = new Pose(56, 94, Math.toRadians(50));
     private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(185));
-    private final Pose pickup2Pose = new Pose(49, 71, Math.toRadians(185));
+    private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
     private final Pose pickup3Pose = new Pose(49, 28, Math.toRadians(180));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
@@ -90,17 +90,17 @@ public class BlueCloseAuto extends LinearOpMode {
         scorePickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup1Pose, scorePose2))
                 .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose2.getHeading())
-                .setHeadingConstraint(headingConstraint)
+//                .setHeadingConstraint(headingConstraint)
                 .build();
 
         grabPickup2 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose2, pickup2Pose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup2Pose.getHeading())
+                .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup2Pose.getHeading())
                 .build();
 
         scorePickup2 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup2Pose, scorePose2))
-                .setLinearHeadingInterpolation(pickup2Pose.getHeading(), scorePose.getHeading())
+                .setLinearHeadingInterpolation(pickup2Pose.getHeading(), scorePose2.getHeading())
                 .build();
 
         grabPickup3 = follower.pathBuilder()
@@ -178,14 +178,12 @@ public class BlueCloseAuto extends LinearOpMode {
             }
         }).start();
 
-        while (opModeIsActive() && needPattern){
-            checkPattern();
-            susanNext();
-            new Thread(()->{
-                sleep(500);
-                needPattern = false;
-            }).start();
-        }
+        new Thread(()->{
+            while (opModeIsActive() && needPattern) {
+                checkPattern();
+                susanNext();
+            }
+        }).start();
 
         // --------- STEP 1: SCORE PRELOAD ----------
         follower.followPath(scorePreload);
@@ -212,8 +210,9 @@ public class BlueCloseAuto extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
+        sleep(1000);
         headingCorrect(scorePose2.getHeading());
-        sleep(250);
+        sleep(100);
         outtake();
         count += 1;
 
@@ -292,6 +291,7 @@ public class BlueCloseAuto extends LinearOpMode {
 
             odo.update();
             Pose2D pos = odo.getPosition();
+            telemetry.addData("DEGREES", pos.getHeading(AngleUnit.DEGREES));
             telemetry.addData("X", pos.getX(DistanceUnit.INCH));
             telemetry.addData("Y", pos.getY(DistanceUnit.INCH));
             telemetry.addData("slot 0", slotColors[0]);
@@ -457,12 +457,12 @@ public class BlueCloseAuto extends LinearOpMode {
         if (count < 2){
             sleep(100);
             driveRelativeX(-1);
-            sleep(100);
-            driveRelativeX(-19);
+            sleep(200);
+            driveRelativeX(-18);
             sleep(200);
         } else {
-            driveRelativeX(-8.5);
-            sleep(100);
+            driveRelativeX(-10);
+            sleep(200);
         }
         new Thread(()->{
             sleep(500);
@@ -553,8 +553,8 @@ public class BlueCloseAuto extends LinearOpMode {
     // Robust heading correction (drop into your class). targetHeadingRad is radians.
     private void headingCorrect(double targetHeadingRad) {
         final double kP = 1.3;
-        final double yawTolRad = Math.toRadians(2.0);  // stop within ~1 degree
-        final double maxPower = 0.4;    // max wheel power used for rotation (tune)
+        final double yawTolRad = Math.toRadians(1.0);  // stop within ~1 degree
+        final double maxPower = 0.35;    // max wheel power used for rotation (tune)
         final long timeoutMs = 5000;     // safety timeout in ms
         long start = System.currentTimeMillis();
 

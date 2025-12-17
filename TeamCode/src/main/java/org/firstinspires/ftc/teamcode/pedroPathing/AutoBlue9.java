@@ -451,8 +451,8 @@ public class AutoBlue9 extends LinearOpMode {
         if (count < 2){
             sleep(100);
             driveRelativeX(-1);
-            sleep(100);
-            driveRelativeX(-19);
+            sleep(200);
+            driveRelativeX(-18);
             sleep(200);
         } else {
             driveRelativeX(-8);
