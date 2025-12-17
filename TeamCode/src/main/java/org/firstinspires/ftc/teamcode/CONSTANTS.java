@@ -4,6 +4,8 @@ public class CONSTANTS {
 //check commit!
 
     public static final double fwSpeed = 1090;
+    public static final double fwFarSpeed = 1090;
+    public static final double fwNearSpeed = 850;
     public static final double autoFwSpeed = 1120;
     public static final double autoFwSpeed2 = 1120;
     public static final double autoCloseFwSpeed = 870;

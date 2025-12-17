@@ -52,7 +52,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@TeleOp(name="Blue Tele-Op", group="Linear OpMode")
+@TeleOp(name="Tele-Op", group="Linear OpMode")
 public class BlueTeleop extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private ElapsedTime runtime = new ElapsedTime();
@@ -86,7 +86,8 @@ public class BlueTeleop extends LinearOpMode {
     private boolean aWasPressed = false;
     private boolean yWasPressed = false;
     private boolean xWasPressed = false;
-    private double lastPos = suzani[servoIndex];;
+    private double lastPos = suzani[servoIndex];
+    private double fwCurrSpeed = fwFarSpeed;
     ElapsedTime llTimer = new ElapsedTime();
 
     @Override//
@@ -142,8 +143,8 @@ public class BlueTeleop extends LinearOpMode {
         runtime.reset();
 
         while (opModeIsActive()) {
-            fwl.setVelocity(fwSpeed);
-            fwr.setVelocity(fwSpeed);
+            fwl.setVelocity(fwCurrSpeed);
+            fwr.setVelocity(fwCurrSpeed);
             if (!wackSet){
                 wackSet = true;
                 sorting1.setPosition(suzano[0]);
@@ -170,15 +171,20 @@ public class BlueTeleop extends LinearOpMode {
                 printCurrentRobotPose();
             }
 
-            if (gamepad1.left_trigger > 0.1){
+            if (gamepad1.left_trigger >0.1){
+                fwCurrSpeed = fwNearSpeed;
+            } else if (gamepad1.right_trigger >0.1){
+                fwCurrSpeed = fwFarSpeed;
+            }
+            if (gamepad1.y){
                 slotColors[0] = "Empty";
                 slotColors[1] = "Empty";
                 slotColors[2] = "Empty";
             }
 
-            if (gamepad1.y){
-                odo.resetPosAndIMU();
-            }
+//            if (gamepad1.y){
+//                odo.resetPosAndIMU();
+//            }
             if (gamepad2.x && !xWasPressed) {
                 xWasPressed = true;
                 new Thread(()->{
