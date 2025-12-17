@@ -52,8 +52,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@TeleOp(name="Tele-Op", group="Linear OpMode")
-public class BlueTeleop extends LinearOpMode {
+@TeleOp(name="Tele-Op FW PID", group="Linear OpMode")
+public class TeleopPIDfw extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor fL = null;
@@ -88,6 +88,11 @@ public class BlueTeleop extends LinearOpMode {
     private boolean xWasPressed = false;
     private double lastPos = suzani[servoIndex];
     private double fwCurrSpeed = fwFarSpeed;
+
+    PIDController pid = new PIDController(0.0115, 0.0, 0.0);
+    final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
+    final double TICKS_PER_REV = 28;        // Encoder CPR
+    final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
     ElapsedTime llTimer = new ElapsedTime();
 
     @Override//
@@ -133,8 +138,6 @@ public class BlueTeleop extends LinearOpMode {
         for (DcMotor m : new DcMotor[]{fL, fR, bL, bR}) {
             m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
-        fwl.setVelocity(0);
-        fwr.setVelocity(0);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -143,8 +146,8 @@ public class BlueTeleop extends LinearOpMode {
         runtime.reset();
 
         while (opModeIsActive()) {
-            fwl.setVelocity(fwCurrSpeed);
-            fwr.setVelocity(fwCurrSpeed);
+            pid.setSetpoint(fwCurrSpeed);
+            fwOn();
             if (!wackSet){
                 wackSet = true;
                 sorting1.setPosition(suzano[0]);
@@ -765,5 +768,21 @@ public class BlueTeleop extends LinearOpMode {
         telemetry.addData("X (m)", trueX);
         telemetry.addData("Y (m)", trueY);
         telemetry.addData("Yaw (deg)", Math.toDegrees(robotYaw));
+    }
+
+    private void fwOn(){
+        double leftVelocity  = fwl.getVelocity();
+        double rightVelocity = fwr.getVelocity();
+        double avgVelocity = (leftVelocity + rightVelocity) / 2.0;
+
+        double pidOutput = pid.update(avgVelocity);
+        // Feedforward based on max motor velocity
+        double feedforward = autoFwSpeed / MAX_VELOCITY;
+        pidOutput += feedforward;
+
+        // Clip to [0,1]
+        pidOutput = Math.max(0, Math.min(pidOutput, 1));
+        fwl.setPower(pidOutput);
+        fwr.setPower(pidOutput);
     }
 }

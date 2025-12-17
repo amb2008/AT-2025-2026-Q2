@@ -26,15 +26,16 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "Grant Popick: Red Auto",group="Robot")
-public class AutoRed extends LinearOpMode {
+@Autonomous(name = "BLUE - Far",group="Robot")
+public class AutoBlueFar extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
-    private final Pose startPose = new Pose(87, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-23));
-    private final Pose pickup1Pose = new Pose(98, 28, Math.toRadians(0));
-    private final Pose pickup2Pose = new Pose(98, 55, Math.toRadians(0));
-    private final Pose pickup3Pose = new Pose(98, 81, Math.toRadians(0));
+    private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
+    private final Pose scorePose = new Pose(56, 14, Math.toRadians(20));
+    private final Pose scorePose2 = new Pose(56, 22, Math.toRadians(20));
+    private final Pose pickup1Pose = new Pose(46, 32, Math.toRadians(180));
+    private final Pose pickup2Pose = new Pose(44, 56, Math.toRadians(180));
+    private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
@@ -63,11 +64,11 @@ public class AutoRed extends LinearOpMode {
     private double lateral = 0.0;
     private double yaw = 0.0;
     private boolean intakeReady = true;
-    private boolean shoot = false;
     private boolean firstIntake = false;
     private boolean needPattern = true;
     private boolean intakeDone = false;
     private double lastPos = suzani[servoIndex];
+    private double count = 0;
 
     //    FLYWHEEL
     PIDController pid = new PIDController(0.0115, 0.0, 0.0);
@@ -87,23 +88,23 @@ public class AutoRed extends LinearOpMode {
                 .build();
 
         scorePickup1 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup1Pose, scorePose))
+                .addPath(new BezierLine(pickup1Pose, scorePose2))
                 .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose.getHeading())
                 .setHeadingConstraint(headingConstraint)
                 .build();
 
         grabPickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose, pickup2Pose))
+                .addPath(new BezierLine(scorePose2, pickup2Pose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup2Pose.getHeading())
                 .build();
 
         scorePickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup2Pose, scorePose))
+                .addPath(new BezierLine(pickup2Pose, scorePose2))
                 .setLinearHeadingInterpolation(pickup2Pose.getHeading(), scorePose.getHeading())
                 .build();
 
         grabPickup3 = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose, pickup3Pose))
+                .addPath(new BezierLine(scorePose2, pickup3Pose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup3Pose.getHeading())
                 .build();
 
@@ -170,7 +171,7 @@ public class AutoRed extends LinearOpMode {
         follower.setStartingPose(startPose);
 
         waitForStart();
-        pid.setSetpoint(autoFwSpeed);
+        pid.setSetpoint(autoFwSpeed2);
         new Thread(()->{
             while (opModeIsActive()){
                 fwOn();
@@ -179,8 +180,11 @@ public class AutoRed extends LinearOpMode {
 
         while (opModeIsActive() && needPattern){
             checkPattern();
-            sorting1.setPosition(suzani[servoIndex]);
-            lastPos = suzani[servoIndex];
+            susanNext();
+            new Thread(()->{
+                sleep(500);
+                needPattern = false;
+            }).start();
         }
 
         // --------- STEP 1: SCORE PRELOAD ----------
@@ -188,52 +192,43 @@ public class AutoRed extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-        sleep(100);
         headingCorrect(scorePose.getHeading());
-//        headingCorrect(Math.toRadians(90)-scorePose.getHeading());
-        sleep(100);
+        susanNext();
+        sleep(1500);
         outtake();
+        count += 1;
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
             fwOn();
             follower.update();
-            shoot = false;
         }
-
-        sleep(100);
         headingCorrect(pickup1Pose.getHeading());
-        sleep(500);
         intakeMacro();
-        sleep(500);
         // --------- STEP 3: SCORE PICKUP 1 ----------
         follower.followPath(scorePickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-        sleep(100);
-        headingCorrect(scorePose.getHeading());
-        sleep(100);
+        headingCorrect(scorePose2.getHeading());
+        sleep(200);
         outtake();
-        sleep(500);
+        count += 1;
 
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-        sleep(500);
+        headingCorrect(pickup1Pose.getHeading());
         intakeMacro();
-
 
         // --------- STEP 5: SCORE PICKUP 2 ----------
         follower.followPath(scorePickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-        sleep(100);
-        headingCorrect(pickup2Pose.getHeading());
-        sleep(100);
+        headingCorrect(scorePose2.getHeading());
         outtake();
 
 
@@ -252,12 +247,6 @@ public class AutoRed extends LinearOpMode {
         outtake();
     }
 
-    public void off(){
-        fL.setPower(0);
-        bL.setPower(0);
-        bR.setPower(0);
-        fR.setPower(0);
-    }
     private void checkPattern() {
         limelight.pipelineSwitch(0);
         LLResult result = limelight.getLatestResult();
@@ -295,50 +284,146 @@ public class AutoRed extends LinearOpMode {
 
     private void outtake() {
         sorting2.setPosition(wackDown);
-        List<Double> servoSequence = new ArrayList<>();
-        boolean[] used = new boolean[slotColors.length];
-        for (String targetColor : pattern) {
-            for (int i = 0; i < slotColors.length; i++) {
-                if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-                    servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
-                    used[i] = true;                // mark slot as used
-                    break;                         // move on to next pattern color
-                }
-            }
-        }
-        for (int i = 0; i < slotColors.length; i++) {
-            if (!used[i]) {
-                servoSequence.add(suzano[i]);
-                used[i] = true;
-            }
-        }
-        for (int i = 0; i < servoSequence.size(); i++) {
+        List<Double> servoSequence = sequence();
+        // --- Perform outtake motion ---
+        for (double servoPos : servoSequence) {
+
             telemetry.addData("slot 0", slotColors[0]);
             telemetry.addData("slot 1", slotColors[1]);
-            telemetry.addData("slot 1", slotColors[2]);
+            telemetry.addData("slot 2", slotColors[2]);
             telemetry.update();
 
-            double servoPos = servoSequence.get(i);
             sorting1.setPosition(servoPos);
+
             if (opModeIsActive()) {
                 if (Math.abs(lastPos - servoPos) > 0.4) {
-                    sleep(2000);
-                } else {
-                    sleep(1500);
+                    sleep(1900);
+                } else if (lastPos != servoPos) {
+                    sleep(800);
                 }
-                if (opModeIsActive()) {
-                    sorting2.setPosition(wackUp);
-                    sleep(400);
-                    sorting2.setPosition(wackDown);
-                    sleep(200);
-                    lastPos = servoPos;
-                }
+
+                sorting2.setPosition(wackUp);
+                sleep(400);
+                sorting2.setPosition(wackDown);
+                sleep(200);
+
+                lastPos = servoPos;
             }
         }
-        servoIndex=0;
+
+        // Reset
+        servoIndex = 0;
         slotColors[0] = "Empty";
         slotColors[1] = "Empty";
         slotColors[2] = "Empty";
+    }
+
+    private void generatePermutations(List<Integer> arr, int k, List<List<Integer>> out) {
+        if (k == arr.size()) {
+            out.add(new ArrayList<>(arr));
+            return;
+        }
+        for (int i = k; i < arr.size(); i++) {
+            int temp = arr.get(k);
+            arr.set(k, arr.get(i));
+            arr.set(i, temp);
+
+            generatePermutations(arr, k + 1, out);
+
+            temp = arr.get(k);
+            arr.set(k, arr.get(i));
+            arr.set(i, temp);
+        }
+    }
+
+    private List<Double> sequence(){
+        List<Integer> slotIndices = new ArrayList<>();
+        for (int i = 0; i < slotColors.length; i++) {
+//            if (!slotColors[i].equalsIgnoreCase("Empty"))
+            slotIndices.add(i);
+        }
+
+        // Convert pattern into list for assignment
+        List<String> patternList = new ArrayList<>();
+        for (String p : pattern) patternList.add(p);
+
+        // --- Generate all permutations of slot indices ---
+        List<List<Integer>> permutations = new ArrayList<>();
+        generatePermutations(slotIndices, 0, permutations);
+
+        double bestCost = Double.MAX_VALUE;
+        List<Integer> bestPerm = slotIndices;  // fallback if nothing matches well
+
+        // --- Evaluate each permutation ---
+        for (List<Integer> perm : permutations) {
+            double cost = 0;
+            double currentPos = lastPos;
+            boolean valid = true;
+
+            for (int i = 0; i < patternList.size(); i++) {
+                String targetColor = patternList.get(i);
+                int slotIndex = 0;
+                if (perm.size() > 0){
+                    slotIndex = perm.get(i % perm.size());  // safe wrap if mismatch
+                } else {
+                    break;
+                }
+
+                if (!slotColors[slotIndex].equalsIgnoreCase(targetColor)) {
+                    valid = false;
+                    break;
+                }
+
+                double nextPos = suzano[slotIndex];
+                if (i>0){
+                    cost += Math.abs(nextPos - currentPos);
+                }
+                currentPos = nextPos;
+            }
+
+            if (valid && cost < bestCost) {
+                bestCost = cost;
+                bestPerm = new ArrayList<>(perm);
+            }
+        }
+
+        // --- Build servo sequence from winning permutation ---
+        List<Double> servoSequence = new ArrayList<>();
+        if (bestCost>5){
+            boolean[] used = new boolean[slotColors.length];
+            for (String targetColor : pattern) {
+                for (int i = 0; i < slotColors.length; i++) {
+                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
+                        servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
+                        used[i] = true;                // mark slot as used
+                        break;                         // move on to next pattern color
+                    }
+                }
+            }
+            for (int i = 0; i < slotColors.length; i++) {
+                if (!used[i]) {
+                    servoSequence.add(suzano[i]);
+                    used[i] = true;
+                }
+            }
+        } else {
+            for (int idx : bestPerm) {
+                servoSequence.add(suzano[idx]);
+            }
+        }
+
+        if (count > 2){
+            servoSequence.removeIf(pos -> pos == suzano[2]);
+        }
+
+        return servoSequence;
+    }
+
+    private void susanNext(){
+        List<Double> servoSequence = sequence();
+        double servoPos = servoSequence.get(0);
+        sorting1.setPosition(servoPos);
+        lastPos = servoPos;
     }
 
     private void intakeMacro(){
@@ -351,39 +436,36 @@ public class AutoRed extends LinearOpMode {
                 intake();
                 telemetry.addLine("INTAKING");
             }
+            if (count == 1){
+                slotColors[0] = "Green";
+                slotColors[1] = "Purple";
+                slotColors[2] = "Purple";
+            } else if (count == 2){
+                slotColors[0] = "Purple";
+                slotColors[1] = "Green";
+                slotColors[2] = "Purple";
+            }
         }).start();
 
-        driveRelativeX(5);
-        sleep(500);
-        driveRelativeX(3);
-        sleep(500);
-        driveRelativeX(14);
+        driveRelativeX(-3);
+        if (count < 2){
+            sleep(100);
+            driveRelativeX(-1);
+            sleep(200);
+            driveRelativeX(-18);
+            sleep(200);
+        } else {
+            driveRelativeX(-8);
+            sleep(100);
+        }
+        new Thread(()->{
+            sleep(500);
+            susanNext();
+        }).start();
         new Thread(()->{
             sleep(1000);
             intakeDone = true;
         }).start();
-    }
-
-    private void dumbMove(){
-        double fl = axial + lateral + yaw;
-        double fr = axial - lateral - yaw;
-        double bl = axial - lateral + yaw;
-        double br = axial + lateral - yaw;
-
-        double max = Math.max(Math.abs(fl), Math.abs(fr));
-        max = Math.max(max, Math.abs(bl));
-        max = Math.max(max, Math.abs(br));
-        if (max > AutoFast) {
-            fl /= max;
-            fr /= max;
-            bl /= max;
-            br /= max;
-        }
-
-        fL.setVelocity(fl);
-        fR.setVelocity(fr);
-        bL.setVelocity(bl);
-        bR.setVelocity(br);
     }
 
     private void intake() {
@@ -437,7 +519,6 @@ public class AutoRed extends LinearOpMode {
             green /= sum;
             blue /= sum;
         }
-
         // Compare with *normalized* reference colors
         double purpleDistance = colorDistance(new double[]{red, green, blue}, purpleBall);
         double greenDistance = colorDistance(new double[]{red, green, blue}, greenBall);
@@ -465,16 +546,13 @@ public class AutoRed extends LinearOpMode {
 
     // Robust heading correction (drop into your class). targetHeadingRad is radians.
     private void headingCorrect(double targetHeadingRad) {
-        final double kP = 0.012;         // tune: proportional gain (start small)
+        final double kP = 1.3;
         final double yawTolRad = Math.toRadians(2.0);  // stop within ~1 degree
-        final double maxPower = 0.35;    // max wheel power used for rotation (tune)
-        final long timeoutMs = 10500;     // safety timeout in ms
-
-        // get current time for timeout
+        final double maxPower = 0.4;    // max wheel power used for rotation (tune)
+        final long timeoutMs = 5000;     // safety timeout in ms
         long start = System.currentTimeMillis();
 
         while (opModeIsActive()) {
-            // timeout safety
             if (System.currentTimeMillis() - start > timeoutMs) {
                 telemetry.addData("headingCorrect", "timeout");
                 break;
@@ -524,20 +602,8 @@ public class AutoRed extends LinearOpMode {
         bL.setPower(0);
         bR.setPower(0);
         telemetry.addLine("headingCorrect done");
+        telemetry.addLine("AT is the best! - Jonah");
         telemetry.update();
-    }
-
-
-    public void moveRelative(double dx, double dy) {
-        follower.update();
-        Pose curr = follower.getPose();
-        Pose target = new Pose(curr.getX() + dx, curr.getY() + dy, curr.getHeading());
-
-        Path p = new Path(new BezierLine(curr, target));
-        p.setLinearHeadingInterpolation(curr.getHeading(), curr.getHeading());
-
-        follower.followPath(p);
-        while (opModeIsActive() && follower.isBusy()) follower.update();
     }
 
     public void driveRelativeX(double inches) {
@@ -557,7 +623,7 @@ public class AutoRed extends LinearOpMode {
             }
 
             // Scale power as you approach the target (smooth stop)
-            double power = 0.1*Math.signum(error);   // apply sign
+            double power = -0.12*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);
@@ -582,7 +648,7 @@ public class AutoRed extends LinearOpMode {
 
         double pidOutput = pid.update(avgVelocity);
         // Feedforward based on max motor velocity
-        double feedforward = autoFwSpeed / MAX_VELOCITY;
+        double feedforward = autoFwSpeed2 / MAX_VELOCITY;
         pidOutput += feedforward;
 
         // Clip to [0,1]

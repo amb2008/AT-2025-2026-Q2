@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 @TeleOp(name = "Flywheel Tester", group = "Debug")
-//@Disabled
+@Disabled
 public class FlywheelPIDTesting extends LinearOpMode {
 
     private DcMotorEx flywheelLeft;

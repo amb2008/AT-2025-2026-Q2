@@ -26,14 +26,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "BLUE - Wall",group="Robot")
-public class AutoBlueWall extends LinearOpMode {
+@Autonomous(name = "RED - Wall",group="Robot")
+public class AutoRedWall extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
-    private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(56, 16, Math.toRadians(21));
-    private final Pose pickup1Pose = new Pose(22, 17, Math.toRadians(180));
-    private final Pose pickup2Pose = new Pose(40, 16, Math.toRadians(90));
+    private final Pose startPose = new Pose(87, 9, Math.toRadians(90));
+    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-23));
+    private final Pose pickup1Pose = new Pose(122, 17, Math.toRadians(0));
+    private final Pose pickup2Pose = new Pose(104, 16, Math.toRadians(90));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
@@ -330,38 +330,17 @@ public class AutoBlueWall extends LinearOpMode {
         }).start();
 
         double initialMove = 1;
-        driveRelativeX(-initialMove);
+        driveRelativeX(initialMove);
         sleep(200);
-        driveRelativeX(initialMove);
-        driveRelativeY(-4);
         driveRelativeX(-initialMove);
+        driveRelativeY(-4);
         driveRelativeX(initialMove);
+        driveRelativeX(-initialMove);
+        sleep(500);
         new Thread(()->{
             sleep(1000);
             intakeDone = true;
         }).start();
-    }
-
-    private void dumbMove(){
-        double fl = axial + lateral + yaw;
-        double fr = axial - lateral - yaw;
-        double bl = axial - lateral + yaw;
-        double br = axial + lateral - yaw;
-
-        double max = Math.max(Math.abs(fl), Math.abs(fr));
-        max = Math.max(max, Math.abs(bl));
-        max = Math.max(max, Math.abs(br));
-        if (max > AutoFast) {
-            fl /= max;
-            fr /= max;
-            bl /= max;
-            br /= max;
-        }
-
-        fL.setVelocity(fl);
-        fR.setVelocity(fr);
-        bL.setVelocity(bl);
-        bR.setVelocity(br);
     }
 
     private void intake() {
@@ -505,19 +484,6 @@ public class AutoBlueWall extends LinearOpMode {
         telemetry.update();
     }
 
-
-    public void moveRelative(double dx, double dy) {
-        follower.update();
-        Pose curr = follower.getPose();
-        Pose target = new Pose(curr.getX() + dx, curr.getY() + dy, curr.getHeading());
-
-        Path p = new Path(new BezierLine(curr, target));
-        p.setLinearHeadingInterpolation(curr.getHeading(), curr.getHeading());
-
-        follower.followPath(p);
-        while (opModeIsActive() && follower.isBusy()) follower.update();
-    }
-
     public void driveRelativeX(double inches) {
         // Update odometry to get starting pose
         odo.update();
@@ -535,7 +501,7 @@ public class AutoBlueWall extends LinearOpMode {
             }
 
             // Scale power as you approach the target (smooth stop)
-            double power = -0.1*Math.signum(error);   // apply sign
+            double power = 0.1*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);
@@ -567,7 +533,7 @@ public class AutoBlueWall extends LinearOpMode {
             }
 
             // Scale power as you approach the target (smooth stop)
-            double power = 0.1*Math.signum(error);   // apply sign
+            double power = -0.1*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(-power);

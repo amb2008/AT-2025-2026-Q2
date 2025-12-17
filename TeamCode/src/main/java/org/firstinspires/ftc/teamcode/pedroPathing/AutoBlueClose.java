@@ -26,16 +26,16 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "Red Close",group="Robot")
-public class RedCloseAuto extends LinearOpMode {
+@Autonomous(name = "BLUE - Close",group="Robot")
+public class AutoBlueClose extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
-    private final Pose startPose = new Pose(127, 124, Math.toRadians(210));
-    private final Pose scorePose = new Pose(84, 94, Math.toRadians(299));
-    private final Pose scorePose2 = new Pose(84, 92, Math.toRadians(299));
-    private final Pose pickup1Pose = new Pose(92, 89, Math.toRadians(-6));
-    private final Pose pickup2Pose = new Pose(90, 69, Math.toRadians(-5));
-    private final Pose pickup3Pose = new Pose(94, 28, Math.toRadians(0));
+    private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
+    private final Pose scorePose = new Pose(59, 94, Math.toRadians(48));
+    private final Pose scorePose2 = new Pose(56, 94, Math.toRadians(51));
+    private final Pose pickup1Pose = new Pose(49.5, 89, Math.toRadians(186));
+    private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
+    private final Pose pickup3Pose = new Pose(49, 28, Math.toRadians(180));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
@@ -452,15 +452,15 @@ public class RedCloseAuto extends LinearOpMode {
             }
         }).start();
 
-        driveRelativeX(5);
+        driveRelativeX(-5);
         if (count < 2){
             sleep(400);
-            driveRelativeX(3);
+            driveRelativeX(-3);
             sleep(400);
-            driveRelativeX(13);
+            driveRelativeX(-13);
             sleep(200);
         } else {
-            driveRelativeX(10);
+            driveRelativeX(-10);
             sleep(200);
         }
         new Thread(()->{
@@ -689,7 +689,7 @@ public class RedCloseAuto extends LinearOpMode {
             }
 
             // Scale power as you approach the target (smooth stop)
-            double power = 0.1*Math.signum(error);   // apply sign
+            double power = -0.1*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);
@@ -703,6 +703,7 @@ public class RedCloseAuto extends LinearOpMode {
         bL.setPower(0);
         bR.setPower(0);
     }
+
 
 
 

@@ -26,19 +26,19 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "Grant Popick: Blue Auto",group="Robot")
-public class AutoBlue extends LinearOpMode {
+@Autonomous(name = "RED - Far",group="Robot")
+public class AutoRedFar extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
-    private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(56, 16, Math.toRadians(21));
-    private final Pose pickup1Pose = new Pose(46, 32, Math.toRadians(180));
-    private final Pose pickup2Pose = new Pose(46, 60, Math.toRadians(180));
-    private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
+    private final Pose startPose = new Pose(87, 9, Math.toRadians(90));
+    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-23));
+    private final Pose pickup1Pose = new Pose(98, 28, Math.toRadians(0));
+    private final Pose pickup2Pose = new Pose(98, 55, Math.toRadians(0));
+    private final Pose pickup3Pose = new Pose(98, 81, Math.toRadians(0));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
-//    NON PEDRO
+    //    NON PEDRO
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotorEx fL = null;
     private DcMotorEx bL = null;
@@ -69,7 +69,7 @@ public class AutoBlue extends LinearOpMode {
     private boolean intakeDone = false;
     private double lastPos = suzani[servoIndex];
 
-//    FLYWHEEL
+    //    FLYWHEEL
     PIDController pid = new PIDController(0.0115, 0.0, 0.0);
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
@@ -190,6 +190,7 @@ public class AutoBlue extends LinearOpMode {
         }
         sleep(100);
         headingCorrect(scorePose.getHeading());
+//        headingCorrect(Math.toRadians(90)-scorePose.getHeading());
         sleep(100);
         outtake();
         // --------- STEP 2: GRAB PICKUP 1 ----------
@@ -352,11 +353,11 @@ public class AutoBlue extends LinearOpMode {
             }
         }).start();
 
-        driveRelativeX(-5);
+        driveRelativeX(5);
         sleep(500);
-        driveRelativeX(-3);
+        driveRelativeX(3);
         sleep(500);
-        driveRelativeX(-14);
+        driveRelativeX(14);
         new Thread(()->{
             sleep(1000);
             intakeDone = true;
@@ -556,7 +557,7 @@ public class AutoBlue extends LinearOpMode {
             }
 
             // Scale power as you approach the target (smooth stop)
-            double power = -0.1*Math.signum(error);   // apply sign
+            double power = 0.1*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);
