@@ -31,9 +31,10 @@ public class AutoRedFar extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(87, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-23));
+    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-25));
+    private final Pose scorePose2 = new Pose(88, 18, Math.toRadians(-25));
     private final Pose pickup1Pose = new Pose(98, 28, Math.toRadians(0));
-    private final Pose pickup2Pose = new Pose(98, 55, Math.toRadians(0));
+    private final Pose pickup2Pose = new Pose(99, 55, Math.toRadians(-2));
     private final Pose pickup3Pose = new Pose(98, 81, Math.toRadians(0));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
@@ -87,8 +88,8 @@ public class AutoRedFar extends LinearOpMode {
                 .build();
 
         scorePickup1 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup1Pose, scorePose))
-                .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose.getHeading())
+                .addPath(new BezierLine(pickup1Pose, scorePose2))
+                .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose2.getHeading())
                 .setHeadingConstraint(headingConstraint)
                 .build();
 
@@ -212,7 +213,7 @@ public class AutoRedFar extends LinearOpMode {
             follower.update();
         }
         sleep(100);
-        headingCorrect(scorePose.getHeading());
+        headingCorrect(scorePose2.getHeading());
         sleep(100);
         outtake();
         sleep(500);

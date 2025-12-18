@@ -31,8 +31,9 @@ public class AutoRedWall extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(87, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-23));
-    private final Pose pickup1Pose = new Pose(122, 17, Math.toRadians(0));
+    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-27));
+    private final Pose scorePose2 = new Pose(95, 17, Math.toRadians(-27));
+    private final Pose pickup1Pose = new Pose(123, 15, Math.toRadians(0));
     private final Pose pickup2Pose = new Pose(104, 16, Math.toRadians(90));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
     private Path scorePreload;
@@ -88,18 +89,18 @@ public class AutoRedWall extends LinearOpMode {
                 .build();
 
         scorePickup1 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup1Pose, scorePose))
-                .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose.getHeading())
+                .addPath(new BezierLine(pickup1Pose, scorePose2))
+                .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose2.getHeading())
                 .setHeadingConstraint(headingConstraint)
                 .build();
 
         grabPickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose, pickup2Pose))
+                .addPath(new BezierLine(scorePose2, pickup2Pose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup2Pose.getHeading())
                 .build();
 
         scorePickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup2Pose, scorePose))
+                .addPath(new BezierLine(pickup2Pose, scorePose2))
                 .setLinearHeadingInterpolation(pickup2Pose.getHeading(), scorePose.getHeading())
                 .build();
 
@@ -211,8 +212,9 @@ public class AutoRedWall extends LinearOpMode {
             follower.update();
         }
         sleep(100);
-        headingCorrect(scorePose.getHeading());
+        headingCorrect(scorePose2.getHeading());
         sleep(100);
+        xCorrect(scorePose2.getX());
         outtake();
         sleep(500);
 
@@ -482,6 +484,66 @@ public class AutoRedWall extends LinearOpMode {
         bR.setPower(0);
         telemetry.addLine("headingCorrect done");
         telemetry.update();
+    }
+    private void xCorrect(double targetXInches) {
+        final double kP = 0.08;              // Proportional gain: tune until it moves smoothly
+        final double xTolInches = 0.5;       // Stop within half an inch
+        final double maxPower = 0.4;         // Cap the speed for accuracy
+        final long timeoutMs = 3000;         // 3 second safety timeout
+
+        long start = System.currentTimeMillis();
+
+        while (opModeIsActive()) {
+            // Timeout safety
+            if (System.currentTimeMillis() - start > timeoutMs) {
+                telemetry.addData("xCorrect", "timeout");
+                break;
+            }
+
+            // Update odometry
+            odo.update();
+            Pose2D pos = odo.getPosition();
+            double currX = pos.getX(DistanceUnit.INCH);
+
+            // Calculate error
+            double xErr = targetXInches - currX;
+
+            // Stop condition
+            if (Math.abs(xErr) <= xTolInches) {
+                break;
+            }
+
+            // P controller for power
+            double power = xErr * kP;
+
+            // Clip to max power and add a minimum "deadband" push to overcome friction
+            power = Math.max(-maxPower, Math.min(maxPower, power));
+            double minPower = 0.12;
+            if (Math.abs(power) > 0 && Math.abs(power) < minPower) {
+                power = Math.copySign(minPower, power);
+            }
+
+            telemetry.addData("X Target", targetXInches);
+            telemetry.addData("X Current", currX);
+            telemetry.addData("X Error", xErr);
+            telemetry.update();
+
+            // For Mecanum: To move Forward/Back, all wheels spin together
+            // Note: Check your motor directions; based on your setup,
+            // you might need to flip the signs here.
+            fL.setPower(power);
+            fR.setPower(power);
+            bL.setPower(power);
+            bR.setPower(power);
+
+            sleep(10);
+        }
+
+        // Stop motors
+        fL.setPower(0);
+        fR.setPower(0);
+        bL.setPower(0);
+        bR.setPower(0);
     }
 
     public void driveRelativeX(double inches) {
