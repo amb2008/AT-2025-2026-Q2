@@ -214,7 +214,7 @@ public class AutoRedWall extends LinearOpMode {
         sleep(100);
         headingCorrect(scorePose2.getHeading());
         sleep(100);
-        xCorrect(scorePose2.getX());
+//        xCorrect(scorePose2.getX());
         outtake();
         sleep(500);
 

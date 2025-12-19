@@ -224,27 +224,27 @@ public class AutoBlueClose extends LinearOpMode {
         intakeMacro();
 
         // --------- STEP 5: SCORE PICKUP 2 ----------
-        follower.followPath(scorePickup2, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
-        headingCorrect(scorePose2.getHeading());
-        outtake();
-
-
-        // --------- STEP 6: GRAB PICKUP 3 ----------
-        follower.followPath(grabPickup3, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
-        intakeMacro();
-
-        // --------- STEP 7: SCORE PICKUP 3 ----------
-        follower.followPath(scorePickup3, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
-        outtake();
+//        follower.followPath(scorePickup2, true);
+//        while (opModeIsActive() && follower.isBusy()) {
+//            follower.update();
+//        }
+//        headingCorrect(scorePose2.getHeading());
+//        outtake();
+//
+//
+//        // --------- STEP 6: GRAB PICKUP 3 ----------
+//        follower.followPath(grabPickup3, true);
+//        while (opModeIsActive() && follower.isBusy()) {
+//            follower.update();
+//        }
+//        intakeMacro();
+//
+//        // --------- STEP 7: SCORE PICKUP 3 ----------
+//        follower.followPath(scorePickup3, true);
+//        while (opModeIsActive() && follower.isBusy()) {
+//            follower.update();
+//        }
+//        outtake();
     }
 
     private void checkPattern() {
@@ -462,6 +462,8 @@ public class AutoBlueClose extends LinearOpMode {
         } else {
             driveRelativeX(-10);
             sleep(200);
+            driveRelativeX(-8);
+            sleep(500);
         }
         new Thread(()->{
             sleep(500);

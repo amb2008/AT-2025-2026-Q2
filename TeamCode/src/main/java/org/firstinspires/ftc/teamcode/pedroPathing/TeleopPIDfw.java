@@ -296,10 +296,10 @@ public class TeleopPIDfw extends LinearOpMode {
             axial = dpadSpeed;
         }
         if (gamepad1.dpad_right) {
-            lateral = -dpadSpeed;
+            lateral = -(dpadSpeed+0.1);
         }
         if (gamepad1.dpad_left) {
-            lateral = dpadSpeed;
+            lateral = dpadSpeed+0.1;
         }
 
         if (gamepad1.left_bumper){

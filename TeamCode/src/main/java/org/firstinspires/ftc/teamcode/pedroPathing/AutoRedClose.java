@@ -31,9 +31,9 @@ public class AutoRedClose extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(127, 124, Math.toRadians(210));
-    private final Pose scorePose = new Pose(84, 94, Math.toRadians(299));
+    private final Pose scorePose = new Pose(86, 96, Math.toRadians(299));
     private final Pose scorePose2 = new Pose(84, 92, Math.toRadians(299));
-    private final Pose pickup1Pose = new Pose(92, 89, Math.toRadians(-6));
+    private final Pose pickup1Pose = new Pose(92, 90, Math.toRadians(-6));
     private final Pose pickup2Pose = new Pose(90, 69, Math.toRadians(-5));
     private final Pose pickup3Pose = new Pose(94, 28, Math.toRadians(0));
     private Path scorePreload;
@@ -223,28 +223,28 @@ public class AutoRedClose extends LinearOpMode {
         headingCorrect(pickup1Pose.getHeading());
         intakeMacro();
 
-        // --------- STEP 5: SCORE PICKUP 2 ----------
-        follower.followPath(scorePickup2, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
-        headingCorrect(scorePose2.getHeading());
-        outtake();
-
-
-        // --------- STEP 6: GRAB PICKUP 3 ----------
-        follower.followPath(grabPickup3, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
-        intakeMacro();
-
-        // --------- STEP 7: SCORE PICKUP 3 ----------
-        follower.followPath(scorePickup3, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
-        outtake();
+//        // --------- STEP 5: SCORE PICKUP 2 ----------
+//        follower.followPath(scorePickup2, true);
+//        while (opModeIsActive() && follower.isBusy()) {
+//            follower.update();
+//        }
+//        headingCorrect(scorePose2.getHeading());
+//        outtake();
+//
+//
+//        // --------- STEP 6: GRAB PICKUP 3 ----------
+//        follower.followPath(grabPickup3, true);
+//        while (opModeIsActive() && follower.isBusy()) {
+//            follower.update();
+//        }
+//        intakeMacro();
+//
+//        // --------- STEP 7: SCORE PICKUP 3 ----------
+//        follower.followPath(scorePickup3, true);
+//        while (opModeIsActive() && follower.isBusy()) {
+//            follower.update();
+//        }
+//        outtake();
     }
 
     private void checkPattern() {
