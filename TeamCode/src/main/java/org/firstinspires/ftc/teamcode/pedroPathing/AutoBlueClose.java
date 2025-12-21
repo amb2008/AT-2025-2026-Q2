@@ -192,7 +192,7 @@ public class AutoBlueClose extends LinearOpMode {
         }
         headingCorrect(scorePose.getHeading());
         susanNext();
-        sleep(1500);
+        sleep(2000);
         outtake();
         count += 1;
         // --------- STEP 2: GRAB PICKUP 1 ----------

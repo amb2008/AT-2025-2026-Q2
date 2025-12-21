@@ -32,7 +32,7 @@ public class AutoRedWall extends LinearOpMode {
     private Follower follower;
     private final Pose startPose = new Pose(87, 9, Math.toRadians(90));
     private final Pose scorePose = new Pose(88, 16, Math.toRadians(-27));
-    private final Pose scorePose2 = new Pose(95, 17, Math.toRadians(-27));
+    private final Pose scorePose2 = new Pose(97, 17, Math.toRadians(-27));
     private final Pose pickup1Pose = new Pose(123, 15, Math.toRadians(0));
     private final Pose pickup2Pose = new Pose(104, 16, Math.toRadians(90));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
@@ -426,7 +426,7 @@ public class AutoRedWall extends LinearOpMode {
     private void headingCorrect(double targetHeadingRad) {
         final double kP = 0.012;         // tune: proportional gain (start small)
         final double yawTolRad = Math.toRadians(2.0);  // stop within ~1 degree
-        final double maxPower = 0.35;    // max wheel power used for rotation (tune)
+        final double maxPower = 0.3;    // max wheel power used for rotation (tune)
         final long timeoutMs = 10500;     // safety timeout in ms
 
         // get current time for timeout

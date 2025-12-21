@@ -31,7 +31,7 @@ public class AutoBlueWall extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(57, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(56, 16, Math.toRadians(21));
+    private final Pose scorePose = new Pose(56, 15, Math.toRadians(21));
     private final Pose pickup1Pose = new Pose(22, 17, Math.toRadians(180));
     private final Pose pickup2Pose = new Pose(40, 16, Math.toRadians(90));
     private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));

@@ -458,7 +458,11 @@ public class TeleopPIDfw extends LinearOpMode {
                     if (Math.abs(lastPos - servoPos) > 0.4) {
                         sleep(2000);
                     } else {
-                        sleep(1200);
+                        if (fwCurrSpeed == fwFarSpeed){
+                            sleep(1800);
+                        } else {
+                            sleep(1200);
+                        }
                     }
                     if (outtaking){
                         sorting2.setPosition(wackUp);
