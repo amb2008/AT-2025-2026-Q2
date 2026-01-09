@@ -20,6 +20,8 @@ public class CONSTANTS {
 
     //    static final double[] suzano = {0.67, 1, 0.3};
     public static final double[] suzano = {0.75, 0.01, 0.38};
+    public static final double[] flicksDown = {0.1, 0.1, 0.1};
+    public static final double[] flicksUp = {0.5, 0.5, 0.5};
 
     //    0.74  0.36  0
 //    0.16  0.53  0.91

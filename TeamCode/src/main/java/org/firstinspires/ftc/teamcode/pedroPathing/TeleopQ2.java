@@ -55,7 +55,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @TeleOp(name="Tele-Op", group="Linear OpMode")
 @Disabled
-public class Teleop extends LinearOpMode {
+public class TeleopQ2 extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor fL = null;
