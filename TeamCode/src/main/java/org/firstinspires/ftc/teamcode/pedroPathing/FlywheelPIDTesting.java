@@ -1,17 +1,35 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.pedroPathing.TestBench;
+
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
+
 @TeleOp(name = "Flywheel Tester", group = "Debug")
-@Disabled
+//@Disabled
 public class FlywheelPIDTesting extends LinearOpMode {
 
     private DcMotorEx flywheelLeft;
     private DcMotorEx flywheelRight;
+    private Limelight3A limelight;
+    private double distance;
+
+    private IMU imu;
 
     // Single PID controller for both motors
     PIDController pid = new PIDController(0.0115, 0.0, 0.0);
@@ -40,22 +58,40 @@ public class FlywheelPIDTesting extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        flywheelLeft  = hardwareMap.get(DcMotorEx.class, "flywheelLeft");
-        flywheelRight = hardwareMap.get(DcMotorEx.class, "flywheelRight");
+        flywheelLeft = hardwareMap.get(DcMotorEx.class, "fwl");
+        flywheelRight = hardwareMap.get(DcMotorEx.class, "fwr");
 
         flywheelLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheelRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        flywheelLeft.setDirection(DcMotor.Direction.FORWARD);
-        flywheelRight.setDirection(DcMotor.Direction.REVERSE);
+        flywheelLeft.setDirection(DcMotor.Direction.REVERSE);
+        flywheelRight.setDirection(DcMotor.Direction.FORWARD);
+
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.pipelineSwitch(1);
+        limelight.start();
 
         telemetry.addLine("Dual Flywheel PID Tuner (GoBILDA 6000 RPM) Ready");
         telemetry.update();
+
+        imu = hardwareMap.get(IMU.class, "imu");
+
+        // Define how the hub is mounted on your robot
+        // Adjust these to match your actual build!
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+
+        // Initialize the IMU with these settings
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
 
         waitForStart();
 
         pid.setSetpoint(targetVelocity);
 
         while (opModeIsActive()) {
+
+
 
             // ----------------------------
             // PID CONSTANT ADJUSTMENT
@@ -106,7 +142,7 @@ public class FlywheelPIDTesting extends LinearOpMode {
             // ----------------------------
             // FLYWHEEL CONTROL (AVERAGE VELOCITY)
             // ----------------------------
-            double leftVelocity  = flywheelLeft.getVelocity();
+            double leftVelocity = flywheelLeft.getVelocity();
             double rightVelocity = flywheelRight.getVelocity();
             double avgVelocity = (leftVelocity + rightVelocity) / 2.0;
 
@@ -126,6 +162,22 @@ public class FlywheelPIDTesting extends LinearOpMode {
             } else {
                 flywheelLeft.setPower(0);
                 flywheelRight.setPower(0);
+            }
+
+            //limelight stuff
+            limelight.updateRobotOrientation(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
+
+            LLResult llResult = limelight.getLatestResult();
+
+            if (llResult != null && llResult.isValid()){
+                Pose3D botpose = llResult.getBotpose_MT2();
+                distance = getDistance(llResult.getTa());
+                telemetry.addData("distance", distance);
+                telemetry.addData("Target X", llResult.getTx());
+                telemetry.addData("Target Area", llResult.getTa());
+                telemetry.addData("Botpose", botpose.toString());
+            } else {
+                telemetry.addLine("No result");
             }
 
             // ----------------------------
@@ -154,4 +206,12 @@ public class FlywheelPIDTesting extends LinearOpMode {
             telemetry.update();
         }
     }
+
+public double getDistance(double ta){
+      double scale = 38665.95;
+      double distance = (scale/ta);
+      return distance;
+
 }
+}
+
