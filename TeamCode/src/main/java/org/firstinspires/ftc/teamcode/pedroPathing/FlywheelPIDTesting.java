@@ -55,8 +55,8 @@ public class FlywheelPIDTesting extends LinearOpMode {
         flywheelLeft = hardwareMap.get(DcMotorEx.class, "fwl");
         flywheelRight = hardwareMap.get(DcMotorEx.class, "fwr");
 
-        flywheelLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        flywheelRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        flywheelLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        flywheelRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         flywheelLeft.setDirection(DcMotor.Direction.REVERSE);
         flywheelRight.setDirection(DcMotor.Direction.FORWARD);
 
