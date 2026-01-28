@@ -64,7 +64,8 @@ public class TurretOpMode extends LinearOpMode {
             } else if (gamepad1.left_bumper && !dpadPressed){
                 dpadPressed = true;
                 kP -= 0.001;
-            } else {
+            }
+            if (gamepad1.left_bumper && gamepad1.right_bumper){
                 dpadPressed = false;
             }
             if (Math.abs(stickInput) > 0.1) {
