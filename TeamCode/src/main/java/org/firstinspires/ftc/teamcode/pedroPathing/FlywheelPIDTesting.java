@@ -164,9 +164,13 @@ public class FlywheelPIDTesting extends LinearOpMode {
             LLResult llResult = limelight.getLatestResult();
 
             if (llResult != null && llResult.isValid()){
-                Pose3D botpose = llResult.getBotpose_MT2();
-                distance = getDistance(llResult.getTa());
+                Pose3D botpose = llResult.getBotpose();
+                double camX  = -botpose.getPosition().x;
+                double camY  = botpose.getPosition().y;
+                distance = getDistance(camX, camY);
                 telemetry.addData("distance", distance);
+                telemetry.addData("Cam X", camX);
+                telemetry.addData("Cam Y", camY);
                 telemetry.addData("Target X", llResult.getTx());
                 telemetry.addData("Target Area", llResult.getTa());
                 telemetry.addData("Botpose", botpose.toString());
@@ -201,11 +205,16 @@ public class FlywheelPIDTesting extends LinearOpMode {
         }
     }
 
-public double getDistance(double ta){
-      double scale = 38665.95;
-      double distance = (scale/ta);
-      return distance;
-
+public double getDistance(double camX, double camY){
+//      double scale = 38665.95;
+//      double distance = (scale/ta);
+//      return distance;
+    double mtBlueX = -1.482;
+    double mtBlueY = -1.413;
+    double mtRedX = 1.482;
+    double mtRedY = 1.413;
+    double distance = Math.sqrt(Math.pow((mtRedX-camX), 2) + Math.pow((mtRedY-camY),2));
+    return distance;
 }
 }
 
