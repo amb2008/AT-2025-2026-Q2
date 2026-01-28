@@ -55,7 +55,7 @@ import java.util.List;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @TeleOp(name="Tele-Op", group="Linear OpMode")
-@Disabled
+//@Disabled
 public class TeleopSupers extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private ElapsedTime runtime = new ElapsedTime();
@@ -66,7 +66,6 @@ public class TeleopSupers extends LinearOpMode {
     private DcMotorEx fwl = null;
     private DcMotorEx fwr = null;
     private DcMotor intake1 = null;
-    private DcMotor intake2 = null;
     private Servo flick1 = null;
     private Servo flick2 = null;
     private Servo flick3 = null;
@@ -116,19 +115,18 @@ public class TeleopSupers extends LinearOpMode {
         fwl = hardwareMap.get(DcMotorEx.class, "fwl");
         fwr = hardwareMap.get(DcMotorEx.class, "fwr");
         intake1 = hardwareMap.get(DcMotor.class, "intake1");
-        intake2 = hardwareMap.get(DcMotor.class, "intake2");
         flick1 = hardwareMap.get(Servo.class, "flick1");
         flick2 = hardwareMap.get(Servo.class, "flick2");
         flick3 = hardwareMap.get(Servo.class, "flick3");
         turret = hardwareMap.get(CRServo.class, "turret");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.start();
-        cs1a = hardwareMap.get(ColorSensor.class, "colorSensor1a");
-        cs1b = hardwareMap.get(ColorSensor.class, "colorSensor1b");
-        cs2a = hardwareMap.get(ColorSensor.class, "colorSensor2a");
-        cs2b = hardwareMap.get(ColorSensor.class, "colorSensor2b");
-        cs3a = hardwareMap.get(ColorSensor.class, "colorSensor3a");
-        cs3b = hardwareMap.get(ColorSensor.class, "colorSensor3b");
+        cs1a = hardwareMap.get(ColorSensor.class, "cs1a");
+        cs1b = hardwareMap.get(ColorSensor.class, "cs1b");
+        cs2a = hardwareMap.get(ColorSensor.class, "cs2a");
+        cs2b = hardwareMap.get(ColorSensor.class, "cs2b");
+        cs3a = hardwareMap.get(ColorSensor.class, "cs3a");
+        cs3b = hardwareMap.get(ColorSensor.class, "cs3b");
 
         fL.setDirection(DcMotor.Direction.FORWARD);
         fL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -151,8 +149,6 @@ public class TeleopSupers extends LinearOpMode {
         for (DcMotor m : new DcMotor[]{fL, fR, bL, bR}) {
             m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
-        fwl.setVelocity(0);
-        fwr.setVelocity(0);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -161,8 +157,8 @@ public class TeleopSupers extends LinearOpMode {
         runtime.reset();
 
         while (opModeIsActive()) {
-            fwl.setVelocity(fwCurrSpeed);
-            fwr.setVelocity(fwCurrSpeed);
+//            fwl.setVelocity(fwCurrSpeed);
+//            fwr.setVelocity(fwCurrSpeed);
             if (!wackSet){
                 wackSet = true;
                 flick1.setPosition(flicksDown[0]);
@@ -170,7 +166,7 @@ public class TeleopSupers extends LinearOpMode {
                 flick3.setPosition(flicksDown[2]);
             }
             limelight.pipelineSwitch(1);
-            moveTurret();
+//            moveTurret();
             driveMecanum();
 
             if (gamepad1.left_trigger >0.1){
@@ -218,6 +214,13 @@ public class TeleopSupers extends LinearOpMode {
 
             if (gamepad2.dpad_left){
                 outtaking = false;
+            }
+
+            if (gamepad1.x){
+                flick1.setPosition(flicksUp[0]);
+            }
+            if (gamepad1.y){
+                flick1.setPosition(flicksDown[0]);
             }
 
             checkColor();
