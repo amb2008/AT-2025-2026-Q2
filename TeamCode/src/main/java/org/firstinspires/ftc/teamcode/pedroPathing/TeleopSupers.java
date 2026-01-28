@@ -217,10 +217,14 @@ public class TeleopSupers extends LinearOpMode {
             }
 
             if (gamepad1.x){
-                flick1.setPosition(flicksUp[0]);
+//                flick1.setPosition(flicksUp[0]);
+                turret.setPower(0.2);
+                double turretpos = 5;
+                telemetry.addData("turret position", slotColors[0]);
             }
             if (gamepad1.y){
-                flick1.setPosition(flicksDown[0]);
+//                flick1.setPosition(flicksDown[0]);
+                turret.setPower(-0.2);
             }
 
             checkColor();
