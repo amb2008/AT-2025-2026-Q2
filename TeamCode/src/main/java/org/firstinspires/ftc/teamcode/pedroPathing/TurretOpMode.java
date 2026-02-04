@@ -50,6 +50,7 @@ public class TurretOpMode extends LinearOpMode {
         telemetry.update();
 
         waitForStart();
+        telemetry.setMsTransmissionInterval(13);
         timer.reset();
 
         while (opModeIsActive()) {
@@ -89,10 +90,22 @@ public class TurretOpMode extends LinearOpMode {
                 double iTerm = kI * integralSum;
 
                 // D
-                double dTerm = kD * ((error - lastError) / dt);
+                double errorRate = (error - lastError) / dt;
+                errorRate = Range.clip(errorRate, -100, 100);
+                double dTerm = kD * errorRate;
+//                double dTerm = kD * ((error - lastError) / dt);
 
                 // F
-                double fTerm = Math.signum(error) * kF;
+                double fTerm = 0;
+                if (Math.abs(error) > 3.0) {  // degrees
+                    fTerm = Math.signum(error) * kF;
+                }
+                telemetry.addData("pTerm", pTerm);
+                telemetry.addData("fTerm", fTerm);
+                telemetry.addData("dTerm", dTerm);
+                telemetry.addData("iTerm", iTerm);
+                telemetry.addData("Motor Power", "%.2f", outputPower);
+
 
                 outputPower = pTerm + iTerm + dTerm + fTerm;
 
@@ -122,7 +135,6 @@ public class TurretOpMode extends LinearOpMode {
             telemetry.addData("Target", locked ? "LOCKED" : "Searching");
             telemetry.addData("Error (tx)", "%.2f", tx);
             telemetry.addData("Integral Sum", "%.2f", integralSum);
-            telemetry.addData("Motor Power", "%.2f", outputPower);
             telemetry.update();
         }
     }
