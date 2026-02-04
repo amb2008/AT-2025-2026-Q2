@@ -1,30 +1,46 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
+
 import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
-@TeleOp(name = "Hybrid Turret Control", group = "TeleOp")
+/**
+ *  How to Tune!
+ *
+ *  If the simple kP version wasn't enough, follow this order to tune this advanced version:
+ *
+ *  1. Find kF first: With the robot on, increase kF until the turret just barely starts to move
+ *  when there is a tiny error, the back it off slightly. This "primes' the servo to overcome friction.
+ *
+ *  2. Set kP: Increase kP until the turret moves quickly to the target but starts to bounce (oscillate).
+ *
+ *  3. Add kD: Slowly add kD (start with very small numbers like 0.001). This acts like "brakes."
+ *  It will see the turret approaching the cneter and counter-act the kP to make it settle softly
+ */
+
+@TeleOp(name = "Turret PIDF", group = "TeleOp")
 public class TurretOpMode extends LinearOpMode {
+
     private Limelight3A limelight;
     private CRServo turretServo;
+    private ElapsedTime timer = new ElapsedTime();
     private boolean dpadPressed = false;
 
-    // --- TUNING ---
-    // In CR mode, kP is the "Speed Multiplier" for tracking.
-    // Start low (0.01) and increase until it's snappy but not oscillating.
-    double kP = 0.04; //Example that you may need to tune by extremely minor adjustments
-    /**
-     * Tuning the "Deadzone"
-     * Because the 5:1 gear reduction is so precies, the Limelight might see the target at 0.1 degrees and try
-     * to move. In a continuous setup, this can cause a "micro-oscillation" where th turret shakes
-     * back and forth.
-     *  - If it shakes, increase visionDeadzone to 1.0
-     *  - If it's too slow to react, increase kP
-     */
-    double visionDeadzone = 0.5; // Degrees of error to ignore (prevents jitter)
+    int targetTagID = 20; // 20 for Blue, 24 for Red
+    // PIDF COEFICIENTS
+    double kP = 0.04;
+    double kI = 0.0;   // Rarely needed for turrets (that said Louisa and I did make adjustments to kI for the Limelight 4)
+    double kD = 0.002; // Prevents "slamming" into position
+    double kF = 0.05;  // Minimum power to overcome 5:1 gear friction
+
+    // Tracking Variables
+    double lastError = 0;
+    double integralSum = 0;
 
     @Override
     public void runOpMode() {
@@ -34,30 +50,18 @@ public class TurretOpMode extends LinearOpMode {
         limelight.setPollRateHz(100);
         limelight.pipelineSwitch(1);
         limelight.start();
-
-        telemetry.addData("Status", "CR Turret Initialized");
-        telemetry.update();
+        timer.reset();
 
         waitForStart();
-
-        /**
-         * Priority Breakdown for Hybrid Mode
-         * 1. Manual Override (High Priority): As soon as the driver moves the right stick beyond the 10% deadzone (feel free to change),
-         * the code enters the first block and ignores everything else. Essentially, the driver can "wrestle" control away from the Limelight.
-         *
-         * 2. Vision Tracking (Medium Priority): If the joystick is centered (no manual input), the code moves to the else if. If the Limelight sees
-         * a valid target, it takes over and steers the Axon/turret.
-         *
-         * 3. Idle/Stop (Low Priority): If the stick is still AND the Limelight sees nothing, the motor power is set to 0 - You may want to change the logic
-         * for this state
-         */
 
         while (opModeIsActive()) {
             LLResult result = limelight.getLatestResult();
             double stickInput = -gamepad1.right_stick_x;
-            double motorPower = 0;
+            double outputPower = 0;
 
-            // 1. PRIORITY: Manual Override (Right Stick)
+            boolean targetLocked = false;
+            double targetTx = 0;
+
             if (gamepad1.right_bumper && !dpadPressed){
                 dpadPressed = true;
                 kP += 0.001;
@@ -65,43 +69,91 @@ public class TurretOpMode extends LinearOpMode {
                 dpadPressed = true;
                 kP -= 0.001;
             }
-            if (gamepad1.left_bumper && gamepad1.right_bumper){
+
+            if (gamepad1.a && !dpadPressed){
+                dpadPressed = true;
+                kI += 0.001;
+            } else if (gamepad1.b && !dpadPressed){
+                dpadPressed = true;
+                kI -= 0.001;
+            }
+
+            if (gamepad1.dpad_up && !dpadPressed){
+                dpadPressed = true;
+                kD += 0.001;
+            } else if (gamepad1.dpad_down && !dpadPressed){
+                dpadPressed = true;
+                kD -= 0.001;
+            }
+
+            if (gamepad1.dpad_right && !dpadPressed){
+                dpadPressed = true;
+                kF += 0.001;
+            } else if (gamepad1.dpad_left && !dpadPressed){
+                dpadPressed = true;
+                kF -= 0.001;
+            }
+
+
+            if (!gamepad1.left_bumper && !gamepad1.right_bumper && !gamepad1.dpad_up && !gamepad1.dpad_down && !gamepad1.dpad_left && !gamepad1.dpad_right && !gamepad1.a && !gamepad1.b){
                 dpadPressed = false;
             }
-            if (Math.abs(stickInput) > 0.1) {
-                motorPower = stickInput;
-                telemetry.addData("Mode", "Manual Control");
-            }
-            // 2. SECONDARY: Limelight Tracking
-            else if (result != null && result.isValid()) {
-                double tx = result.getTx();
 
-                if (Math.abs(tx) > visionDeadzone) {
-                    // tx is degrees away from center.
-                    // We multiply by kP to get a power between -1 and 1.
-                    motorPower = tx * kP;
-                    telemetry.addData("Mode", "Vision Tracking");
-                } else {
-                    motorPower = 0; // Target is centered
-                    telemetry.addData("Mode", "LOCKED");
+            telemetry.addLine("Bump Right = kP+");
+            telemetry.addLine("Bump Left = kP-");
+            telemetry.addLine("Dpad Up = kD+");
+            telemetry.addLine("Dpad Down = kD-");
+            telemetry.addLine("Dpad Right = kF+");
+            telemetry.addLine("Dpad Left = kF-");
+            telemetry.addLine("A = kI+");
+            telemetry.addLine("B = kI-");
+//            kF = 0.074
+
+            // 1. FILTER FOR SPECIFIC DECODE TAG
+            if (result != null && result.isValid()) {
+                for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                    if (tag.getFiducialId() == targetTagID) {
+                        targetTx = tag.getTargetXDegrees();
+                        targetLocked = true;
+                        break;
+                    }
                 }
             }
-            // 3. IDLE: If no input and no target, stop.
-            else {
-                motorPower = 0;
-                telemetry.addData("Mode", "Searching/Idle");
+
+            // 2. PRIORITY LOGIC
+            if (Math.abs(stickInput) > 0.1) {
+                outputPower = stickInput; // Manual Control
+            }
+            else if (targetLocked) {
+                // PIDF Calculation
+                double error = targetTx;
+                double dt = timer.seconds();
+                double pTerm = kP * error;
+                double iTerm = kI;
+                double dTerm = kD * ((error - lastError) / dt);
+                double fTerm = Math.signum(error) * kF;
+
+                outputPower = pTerm + dTerm + fTerm;
+
+                lastError = error;
+                timer.reset();
             }
 
-            // Apply power (limited to prevent the 5:1 reduction from being too violent) - tweak as you see fit
-            turretServo.setPower(Range.clip(motorPower, -0.8, 0.8));
+            // 3. APPLY & PROTECT
+            // Limited to 0.80 power to protect the 5:1 gears from violent snaps
+            if (Math.abs(targetTx) > 0.5){
+                turretServo.setPower(Range.clip(outputPower, -0.80, 0.80));
+            } else {
+                turretServo.setPower(0);
+            }
 
+            telemetry.addData("Target", targetLocked ? "LOCKED" : "SEARCHING");
+            telemetry.addData("TX", targetTx);
+            telemetry.addData("kF", kF);
             telemetry.addData("kP", kP);
-            // Feedback
-            telemetry.addData("Motor Power", motorPower);
-            if(result != null) telemetry.addData("Target Offset (tx)", result.getTx());
+            telemetry.addData("kD", kD);
+            telemetry.addData("kI", kP);
             telemetry.update();
         }
-
-        limelight.stop();
     }
 }

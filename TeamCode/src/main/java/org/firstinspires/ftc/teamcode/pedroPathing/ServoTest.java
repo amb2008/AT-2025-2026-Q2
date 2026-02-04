@@ -1,10 +1,12 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @TeleOp(name = "Servo Test", group = "Tests")
+@Disabled
 public class ServoTest extends LinearOpMode {
 
     // Assume a servo named "test_servo" is configured in the robot configuration

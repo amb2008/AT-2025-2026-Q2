@@ -30,7 +30,7 @@ public class FlywheelPIDTesting extends LinearOpMode {
 
     // Target velocity (ticks/sec)
     double targetVelocity = 1100;
-    double velocityIncrement = 50; // ticks/sec per D-pad press
+    double velocityIncrement = 20; // ticks/sec per D-pad press
 
     // PID tuning increments
     double stepP = 0.0005;
