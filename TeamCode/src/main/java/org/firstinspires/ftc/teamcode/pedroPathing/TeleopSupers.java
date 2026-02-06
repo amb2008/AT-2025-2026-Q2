@@ -91,6 +91,7 @@ public class TeleopSupers extends LinearOpMode {
     private boolean outtaking = false;
     private boolean wackSet = false;
     private boolean driverLock = false;
+    private boolean up = false;
 
     //    manual booleans
     private boolean aWasPressed = false;
@@ -216,16 +217,54 @@ public class TeleopSupers extends LinearOpMode {
                 outtaking = false;
             }
 
-            if (gamepad1.x){
-//                flick1.setPosition(flicksUp[0]);
-                turret.setPower(0.2);
-                double turretpos = 5;
-                telemetry.addData("turret position", slotColors[0]);
+            if (gamepad1.a && !aWasPressed){
+                aWasPressed = true;
+                if (!up){
+                    flick1.setPosition(flicksDown[0]);
+                    up=true;
+                } else {
+                    up = false;
+                    flick1.setPosition(flicksUp[0]);
+                }
             }
-            if (gamepad1.y){
-//                flick1.setPosition(flicksDown[0]);
-                turret.setPower(-0.2);
+
+            if (gamepad1.b && !aWasPressed){
+                aWasPressed = true;
+                if (!up){
+                    flick2.setPosition(flicksDown[1]);
+                    up=true;
+                } else {
+                    up = false;
+                    flick2.setPosition(flicksUp[1]);
+                }
             }
+
+            if (gamepad1.x && !aWasPressed){
+                aWasPressed = true;
+                if (!up){
+                    flick3.setPosition(flicksDown[2]);
+                    up=true;
+                } else {
+                    up = false;
+                    flick3.setPosition(flicksUp[2]);
+                }
+            }
+
+            if (!gamepad1.a && !gamepad1.b && !gamepad1.x){
+                aWasPressed = false;
+            }
+            telemetry.addData("Pressed", aWasPressed);
+            telemetry.addData("Up", up);
+//            if (gamepad1.x){
+////                flick1.setPosition(flicksUp[0]);
+//                turret.setPower(0.2);
+//                double turretpos = 5;
+//                telemetry.addData("turret position", slotColors[0]);
+//            }
+//            if (gamepad1.y){
+////                flick1.setPosition(flicksDown[0]);
+//                turret.setPower(-0.2);
+//            }
 
             checkColor();
             telemetry.addData("Slot 1", slotColors[0]);
@@ -369,11 +408,11 @@ public class TeleopSupers extends LinearOpMode {
         greenBall = normalizeColor(greenBall);
 
         double[] rgb1a = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
-        double[] rgb1b = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
-        double[] rgb2a = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
-        double[] rgb2b = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
-        double[] rgb3a = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
-        double[] rgb3b = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
+        double[] rgb1b = normalizeColor(new double[]{cs1b.red(), cs1b.green(), cs1b.blue()});
+        double[] rgb2a = normalizeColor(new double[]{cs2a.red(), cs2a.green(), cs2a.blue()});
+        double[] rgb2b = normalizeColor(new double[]{cs2b.red(), cs2b.green(), cs2b.blue()});
+        double[] rgb3a = normalizeColor(new double[]{cs3a.red(), cs3a.green(), cs3a.blue()});
+        double[] rgb3b = normalizeColor(new double[]{cs3b.red(), cs3b.green(), cs3b.blue()});
 
         // Check Slot 1
         double pdist = colorDistance(rgb1a, purpleBall);

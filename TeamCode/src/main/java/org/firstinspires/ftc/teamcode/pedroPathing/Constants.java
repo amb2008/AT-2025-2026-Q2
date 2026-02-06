@@ -16,11 +16,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(14)
-            .forwardZeroPowerAcceleration(-40.8026)
-            .lateralZeroPowerAcceleration(-68.02944)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0.0,0.007,0.04))
-            .headingPIDFCoefficients(new PIDFCoefficients(0.9, 0.0, 0.085,0.04))
+            .mass(18)
+            .forwardZeroPowerAcceleration(-39.77)
+            .lateralZeroPowerAcceleration(-102.72)
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.13, 0.0,0.01,0.04))
+            .headingPIDFCoefficients(new PIDFCoefficients(1.0, 0.0, 0.03,0.02))
 //            .secondaryHeadingPIDFCoefficients(new PIDFCoefficients(0,0,0,0))
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025, 0.0,0.000005, 0.06, 0.01))
 //            .secondaryDrivePIDFCoefficients(new FilteredPIDFCoefficients(0,0,0,0,0))
@@ -32,7 +32,7 @@ public class Constants {
             0.99,
             100,
             1,
-            1);
+            0.97);
     public static Follower createFollower(HardwareMap hardwareMap) {
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .pinpointLocalizer(localizerConstants)
@@ -46,8 +46,8 @@ public class Constants {
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("odo")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
@@ -59,6 +59,6 @@ public class Constants {
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .xVelocity(72.91979)
-            .yVelocity(50.43466);
+            .xVelocity(71.8)
+            .yVelocity(42.3316756);
 }
