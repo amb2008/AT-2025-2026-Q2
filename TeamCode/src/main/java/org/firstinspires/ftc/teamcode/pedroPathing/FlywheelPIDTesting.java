@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import static org.firstinspires.ftc.teamcode.CONSTANTS.flicksDown;
+import static org.firstinspires.ftc.teamcode.CONSTANTS.flicksUp;
+
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -13,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 
 @TeleOp(name = "Flywheel Tester", group = "Debug")
 //@Disabled
@@ -21,6 +25,12 @@ public class FlywheelPIDTesting extends LinearOpMode {
     private DcMotorEx flywheelLeft;
     private DcMotorEx flywheelRight;
     private Limelight3A limelight;
+    private Servo flick1 = null;
+    private Servo flick2 = null;
+    private Servo flick3 = null;
+    private boolean wackSet = false;
+    private boolean aWasPressed = false;
+    private boolean up = false;
     private double distance;
 
     private IMU imu;
@@ -54,6 +64,9 @@ public class FlywheelPIDTesting extends LinearOpMode {
 
         flywheelLeft = hardwareMap.get(DcMotorEx.class, "fwl");
         flywheelRight = hardwareMap.get(DcMotorEx.class, "fwr");
+        flick1 = hardwareMap.get(Servo.class, "flick1");
+        flick2 = hardwareMap.get(Servo.class, "flick2");
+        flick3 = hardwareMap.get(Servo.class, "flick3");
 
         flywheelLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         flywheelRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -84,8 +97,48 @@ public class FlywheelPIDTesting extends LinearOpMode {
         pid.setSetpoint(targetVelocity);
 
         while (opModeIsActive()) {
+            if (!wackSet){
+                wackSet = true;
+                flick1.setPosition(flicksDown[0]);
+                flick2.setPosition(flicksDown[1]);
+                flick3.setPosition(flicksDown[2]);
+            }
 
+            if (gamepad2.a && !aWasPressed){
+                aWasPressed = true;
+                if (!up){
+                    flick1.setPosition(flicksDown[0]);
+                    up=true;
+                } else {
+                    up = false;
+                    flick1.setPosition(flicksUp[0]);
+                }
+            }
 
+            if (gamepad2.b && !aWasPressed){
+                aWasPressed = true;
+                if (!up){
+                    flick2.setPosition(flicksDown[1]);
+                    up=true;
+                } else {
+                    up = false;
+                    flick2.setPosition(flicksUp[1]);
+                }
+            }
+
+            if (gamepad2.x && !aWasPressed){
+                aWasPressed = true;
+                if (!up){
+                    flick3.setPosition(flicksDown[2]);
+                    up=true;
+                } else {
+                    up = false;
+                    flick3.setPosition(flicksUp[2]);
+                }
+            }
+            if (!gamepad1.a && !gamepad1.b && !gamepad1.x){
+                aWasPressed = false;
+            }
 
             // ----------------------------
             // PID CONSTANT ADJUSTMENT
@@ -169,11 +222,11 @@ public class FlywheelPIDTesting extends LinearOpMode {
                 double camY  = botpose.getPosition().y;
                 distance = getDistance(camX, camY);
                 telemetry.addData("distance", distance);
-                telemetry.addData("Cam X", camX);
-                telemetry.addData("Cam Y", camY);
-                telemetry.addData("Target X", llResult.getTx());
-                telemetry.addData("Target Area", llResult.getTa());
-                telemetry.addData("Botpose", botpose.toString());
+//                telemetry.addData("Cam X", camX);
+//                telemetry.addData("Cam Y", camY);
+//                telemetry.addData("Target X", llResult.getTx());
+//                telemetry.addData("Target Area", llResult.getTa());
+//                telemetry.addData("Botpose", botpose.toString());
             } else {
                 telemetry.addLine("No result");
             }
@@ -190,9 +243,6 @@ public class FlywheelPIDTesting extends LinearOpMode {
             telemetry.addData("Target Velocity", targetVelocity);
             telemetry.addData("Left Velocity", leftVelocity);
             telemetry.addData("Right Velocity", rightVelocity);
-            telemetry.addData("Average Velocity", avgVelocity);
-            telemetry.addData("PID Output", pidOutput);
-            telemetry.addData("Motors Enabled", motorsEnabled);
 
             telemetry.addLine("\n=== Controls ===");
             telemetry.addLine("P: Y ↑ | A ↓");
@@ -200,6 +250,7 @@ public class FlywheelPIDTesting extends LinearOpMode {
             telemetry.addLine("D: Up ↑ | Down ↓");
             telemetry.addLine("Velocity: Left ↑ | Right ↓");
             telemetry.addLine("Motor On: Left Bumper | Off: Right Bumper");
+            telemetry.addLine("Gamepad 2 AXY: Flickers");
 
             telemetry.update();
         }
