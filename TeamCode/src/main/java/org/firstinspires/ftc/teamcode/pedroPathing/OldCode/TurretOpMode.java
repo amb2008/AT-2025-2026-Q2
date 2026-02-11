@@ -1,8 +1,8 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.OldCode;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp(name = "PIDF TUNER", group = "Tuning")
+@Disabled
 public class TurretOpMode extends LinearOpMode {
 
     // Hardware

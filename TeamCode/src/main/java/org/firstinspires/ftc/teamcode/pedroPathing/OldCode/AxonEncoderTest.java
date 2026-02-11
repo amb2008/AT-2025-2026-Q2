@@ -1,5 +1,6 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.OldCode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
@@ -25,6 +26,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
  */
 
 @TeleOp(name = "Axon Encoder Test", group = "Test")
+@Disabled
 public class AxonEncoderTest extends OpMode {
 
     // Define hardware variables

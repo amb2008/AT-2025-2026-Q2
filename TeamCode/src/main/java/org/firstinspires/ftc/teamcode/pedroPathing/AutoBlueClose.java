@@ -17,8 +17,10 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import static org.firstinspires.ftc.teamcode.CONSTANTS.*;
 
@@ -80,6 +82,10 @@ public class AutoBlueClose extends LinearOpMode {
     private static final double GEAR_RATIO = 5.0;  // 5:1 Reduction
     private double lastVoltage = 0;
     private int rotationCount = 0;
+    private double turretPower = 0.95;
+    private double targetTagID = 20;
+    private double lastDirection = 1;
+    double lastError = 0;
     // Safety Limits (Degrees)
     private static final double MAX_TURRET_ANGLE = 180;
     private static final double MIN_TURRET_ANGLE = -180;
@@ -89,12 +95,10 @@ public class AutoBlueClose extends LinearOpMode {
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
-    final double headingConstraint = Math.toRadians(0.5);
-    ElapsedTime llTimer = new ElapsedTime();
+    ElapsedTime timer = new ElapsedTime();
     public void buildPaths() {
         scorePreload = new Path(new BezierLine(startPose, scorePose));
         scorePreload.setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading());
-        scorePreload.setHeadingConstraint(headingConstraint);
 
         grabPickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose, pickup1Pose))
@@ -104,7 +108,6 @@ public class AutoBlueClose extends LinearOpMode {
         scorePickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup1Pose, scorePose2))
                 .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose2.getHeading())
-//                .setHeadingConstraint(headingConstraint)
                 .build();
 
         grabPickup2 = follower.pathBuilder()
@@ -172,8 +175,8 @@ public class AutoBlueClose extends LinearOpMode {
         fwl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fwr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        fwl.setDirection(DcMotor.Direction.FORWARD);
-        fwr.setDirection(DcMotor.Direction.REVERSE);
+        fwl.setDirection(DcMotor.Direction.REVERSE);
+        fwr.setDirection(DcMotor.Direction.FORWARD);
 
         for (DcMotor m : new DcMotor[]{fL, fR, bL, bR}) {
             m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -200,14 +203,18 @@ public class AutoBlueClose extends LinearOpMode {
             }).start();
         }
 
+        new Thread(()->{
+            while (opModeIsActive()){
+                moveTurret();
+            }
+        }).start();
+
         // --------- STEP 1: SCORE PRELOAD ----------
         follower.followPath(scorePreload);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-//        headingCorrect(scorePose.getHeading());
         outtake();
-        count += 1;
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -226,8 +233,6 @@ public class AutoBlueClose extends LinearOpMode {
         headingCorrect2(scorePose2.getHeading());
         sleep(100);
         outtake();
-        count += 1;
-
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -315,7 +320,6 @@ public class AutoBlueClose extends LinearOpMode {
             for (LLResultTypes.FiducialResult fr : fiducialResults) {
                 tagId = fr.getFiducialId();
             }
-
             if (tagId == 21) {
                 pattern[0] = "green";
                 pattern[1] = "purple";
@@ -341,42 +345,77 @@ public class AutoBlueClose extends LinearOpMode {
         }
     }
 
+    private void moveTurret() {
+        double currentVoltage = axonEncoder.getVoltage();
+        double currentServoAngle = (currentVoltage / MAX_VOLTAGE) * 360.0;
+        double threshold = MAX_VOLTAGE / 2.0;
+        if (currentVoltage - lastVoltage < -threshold) {
+            rotationCount++;
+        } else if (currentVoltage - lastVoltage > threshold) {
+            rotationCount--;
+        }
+        lastVoltage = currentVoltage;
+        double totalServoDegrees = (rotationCount * 360.0) + currentServoAngle;
+        double turretAngle = totalServoDegrees / GEAR_RATIO;
+
+        limelight.pipelineSwitch(1);
+        double outputPower = 0;
+        double tx = 0;
+        boolean locked = false;
+
+        LLResult result = limelight.getLatestResult();
+        if (result != null && result.isValid()) {
+            for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                if (tag.getFiducialId() == targetTagID) {
+                    tx = tag.getTargetXDegrees();
+                    lastDirection = Math.signum(tx)*1;
+                    locked = true;
+                    break;
+                }
+            }
+        }
+        if (Math.abs(turretAngle) > MAX_TURRET_ANGLE || !locked){
+            if (turretAngle >= MAX_TURRET_ANGLE) {
+                lastDirection = -1;
+            } else if (turretAngle <= MIN_TURRET_ANGLE) {
+                lastDirection = 1;
+            }
+            turretPower = 0.99*lastDirection;
+            turret.setPower(turretPower);
+        }
+        else if (locked) {
+            double error = tx;
+            double dt = timer.seconds();
+            if (dt == 0) dt = 0.001; // Safety
+
+            double errorRate = (error - lastError) / dt;
+            errorRate = Range.clip(errorRate, -100, 100);
+
+            double pTerm = turretkP * error;
+            double dTerm = turretkD * errorRate;
+            double fTerm = 0;
+            if (Math.abs(error) > 3.0) {  // degrees
+                fTerm = Math.signum(error) * turretkF;
+            }
+            outputPower = pTerm + dTerm + fTerm;
+            lastError = error;
+            timer.reset();
+            if (Math.abs(error) > 1) {
+                turret.setPower(Range.clip(outputPower, -0.75, 0.75));
+            } else {
+                turret.setPower(0);
+            }
+        }
+    }
 
     private void intakeMacro(){
-        servoIndex = 0;
         intakeDone = false;
         new Thread(()->{
             while (!intakeDone){
                 intake();
-                telemetry.addLine("INTAKING");
-            }
-            if (count == 1){
-                slotColors[0] = "Purple";
-                slotColors[1] = "Purple";
-                slotColors[2] = "Green";
-            } else if (count == 2){
-                slotColors[0] = "Purple";
-                slotColors[1] = "Green";
-                slotColors[2] = "Purple";
             }
         }).start();
-
-        driveRelativeX(-5);
-        if (count < 2){
-            sleep(400);
-            driveRelativeX(-3);
-            sleep(400);
-            driveRelativeX(-13);
-            sleep(200);
-        } else {
-            driveRelativeX(-10);
-            sleep(200);
-            driveRelativeX(-8);
-            sleep(500);
-        }
-        new Thread(()->{
-            sleep(500);
-        }).start();
+        driveRelativeX(-20);
         new Thread(()->{
             sleep(1000);
             intakeDone = true;

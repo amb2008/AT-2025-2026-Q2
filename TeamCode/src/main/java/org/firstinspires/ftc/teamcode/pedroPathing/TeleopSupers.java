@@ -36,6 +36,7 @@ import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -152,8 +153,8 @@ public class TeleopSupers extends LinearOpMode {
         fwl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fwr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        fwl.setDirection(DcMotor.Direction.FORWARD);
-        fwr.setDirection(DcMotor.Direction.REVERSE);
+        fwl.setDirection(DcMotor.Direction.REVERSE);
+        fwr.setDirection(DcMotor.Direction.FORWARD);
 
         for (DcMotor m : new DcMotor[]{fL, fR, bL, bR}) {
             m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -166,11 +167,9 @@ public class TeleopSupers extends LinearOpMode {
         runtime.reset();
 
         while (opModeIsActive()) {
-            new Thread(()->{
 //            fwl.setVelocity(fwCurrSpeed);
 //            fwr.setVelocity(fwCurrSpeed);
-                moveTurret();
-            }).start();
+            moveTurret();
             if (!wackSet){
                 wackSet = true;
                 flick1.setPosition(flicksDown[0]);
