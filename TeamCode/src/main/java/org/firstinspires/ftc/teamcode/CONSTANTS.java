@@ -18,6 +18,12 @@ public class CONSTANTS {
     //    static final double[] suzani = {0.1, 0.48, .83};
     public static final double[] suzani = {0.19, 0.56, 0.93};
 
+//    TURRET
+    public static final double turretkP = 0.016;
+    public static final double turretkI = 0.00;
+    public static final double turretkD = 0.002;
+    public static final double turretkF = 0.01;
+
     //    static final double[] suzano = {0.67, 1, 0.3};
 //    Let third one be mirrored
     public static final double[] suzano = {0.75, 0.01, 0.38};

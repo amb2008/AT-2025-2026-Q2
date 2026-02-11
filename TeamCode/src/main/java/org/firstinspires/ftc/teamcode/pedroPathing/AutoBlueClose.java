@@ -10,7 +10,10 @@ import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.AnalogInput;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -27,12 +30,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Autonomous(name = "BLUE - Close",group="Robot")
+@Disabled
 public class AutoBlueClose extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
-    private final Pose scorePose = new Pose(59, 94, Math.toRadians(48));
-    private final Pose scorePose2 = new Pose(56, 94, Math.toRadians(51));
+    private final Pose scorePose = new Pose(59, 94, Math.toRadians(185));
+    private final Pose scorePose2 = new Pose(56, 94, Math.toRadians(185));
     private final Pose pickup1Pose = new Pose(49.5, 89, Math.toRadians(186));
     private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
     private final Pose pickup3Pose = new Pose(49, 28, Math.toRadians(180));
@@ -41,34 +45,44 @@ public class AutoBlueClose extends LinearOpMode {
 
     //    NON PEDRO
     private ElapsedTime runtime = new ElapsedTime();
-    private DcMotorEx fL = null;
-    private DcMotorEx bL = null;
-    private DcMotorEx fR = null;
-    private DcMotorEx bR = null;
+    private DcMotor fL = null;
+    private DcMotor bL = null;
+    private DcMotor fR = null;
+    private DcMotor bR = null;
     private DcMotorEx fwl = null;
     private DcMotorEx fwr = null;
     private DcMotor intake1 = null;
-    private Servo sorting1 = null;
-    private Servo sorting2 = null;
-    private Servo limelightmount = null;
+    private Servo flick1 = null;
+    private Servo flick2 = null;
+    private Servo flick3 = null;
+    private CRServo turret = null;
     private Limelight3A limelight;
-    private double llServoPos = 0.3;
-    private ColorSensor colorSensor;
-    private int servoIndex = 0;  // start at first position
-    private String[] slotColors = {"Purple", "Purple", "Green"};
+    private ColorSensor cs1a;
+    private ColorSensor cs1b;
+    private ColorSensor cs2a;
+    private ColorSensor cs2b;
+    private ColorSensor cs3a;
+    private ColorSensor cs3b;
+    private int servoIndex = 0;  // start at fir
+    // st position
+    private String[] slotColors = {"Empty", "Empty", "Empty"};
     private String[] pattern = {"purple", "purple", "green"};
-    private String lastBallColor = "Unknown";
     private boolean sweepingForward = true;
-    private double heading = 0.0;
-    private double axial = 0.0;
-    private double lateral = 0.0;
-    private double yaw = 0.0;
     private boolean intakeReady = true;
-    private boolean firstIntake = false;
     private boolean needPattern = true;
-    private boolean intakeDone = false;
-    private double lastPos = suzani[servoIndex];
+    private boolean outtaking = false;
+    private boolean wackSet = false;
     private double count = 0;
+    private boolean intakeDone = false;
+    //        AXON ENCODER TRACKING
+    private AnalogInput axonEncoder;
+    private static final double MAX_VOLTAGE = 3.3; // Check your specific hub, usually 3.3V
+    private static final double GEAR_RATIO = 5.0;  // 5:1 Reduction
+    private double lastVoltage = 0;
+    private int rotationCount = 0;
+    // Safety Limits (Degrees)
+    private static final double MAX_TURRET_ANGLE = 180;
+    private static final double MIN_TURRET_ANGLE = -180;
 
     //    FLYWHEEL
     PIDController pid = new PIDController(0.0115, 0.0, 0.0);
@@ -116,6 +130,12 @@ public class AutoBlueClose extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
+        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+        odo.setOffsets(140, 0, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
+        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        odo.resetPosAndIMU();
+
         fL = hardwareMap.get(DcMotorEx.class, "fL");
         bL = hardwareMap.get(DcMotorEx.class, "bL");
         fR = hardwareMap.get(DcMotorEx.class, "fR");
@@ -123,35 +143,31 @@ public class AutoBlueClose extends LinearOpMode {
         fwl = hardwareMap.get(DcMotorEx.class, "fwl");
         fwr = hardwareMap.get(DcMotorEx.class, "fwr");
         intake1 = hardwareMap.get(DcMotor.class, "intake1");
-        sorting1 = hardwareMap.get(Servo.class, "sorting1");
-        sorting2 = hardwareMap.get(Servo.class, "sorting2");
-        limelightmount = hardwareMap.get(Servo.class, "limelightmount");
+        flick1 = hardwareMap.get(Servo.class, "flick1");
+        flick2 = hardwareMap.get(Servo.class, "flick2");
+        flick3 = hardwareMap.get(Servo.class, "flick3");
+        turret = hardwareMap.get(CRServo.class, "turret");
+        axonEncoder = hardwareMap.get(AnalogInput.class, "encoder");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.pipelineSwitch(1);
         limelight.start();
-        colorSensor = hardwareMap.get(ColorSensor.class, "colorSensor");
-
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
-        odo.setOffsets(-175.0, 60, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
-        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.REVERSED);
-        odo.resetPosAndIMU();
+        cs1a = hardwareMap.get(ColorSensor.class, "cs1a");
+        cs1b = hardwareMap.get(ColorSensor.class, "cs1b");
+        cs2a = hardwareMap.get(ColorSensor.class, "cs2a");
+        cs2b = hardwareMap.get(ColorSensor.class, "cs2b");
+        cs3a = hardwareMap.get(ColorSensor.class, "cs3a");
+        cs3b = hardwareMap.get(ColorSensor.class, "cs3b");
 
         fL.setDirection(DcMotor.Direction.FORWARD);
         fL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        fL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         bL.setDirection(DcMotor.Direction.FORWARD);
         bL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        bL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         fR.setDirection(DcMotor.Direction.REVERSE);
         fR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        fR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         bR.setDirection(DcMotor.Direction.REVERSE);
         bR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        bR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         fwl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fwr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -159,11 +175,9 @@ public class AutoBlueClose extends LinearOpMode {
         fwl.setDirection(DcMotor.Direction.FORWARD);
         fwr.setDirection(DcMotor.Direction.REVERSE);
 
-        // Send telemetry message to indicate successful Encoder reset
-        telemetry.addData("Starting at",  "%7d :%7d",
-                fL.getCurrentPosition(),
-                bR.getCurrentPosition());
-        telemetry.update();
+        for (DcMotor m : new DcMotor[]{fL, fR, bL, bR}) {
+            m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
 
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
@@ -178,21 +192,20 @@ public class AutoBlueClose extends LinearOpMode {
             }
         }).start();
 
-        new Thread(()->{
-            while (opModeIsActive() && needPattern) {
-                checkPattern();
-            }
-            susanNext();
-        }).start();
+        while (opModeIsActive() && needPattern){
+            checkPattern();
+            new Thread(()->{
+                sleep(500);
+                needPattern = false;
+            }).start();
+        }
 
         // --------- STEP 1: SCORE PRELOAD ----------
         follower.followPath(scorePreload);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-        headingCorrect(scorePose.getHeading());
-        susanNext();
-        sleep(2000);
+//        headingCorrect(scorePose.getHeading());
         outtake();
         count += 1;
         // --------- STEP 2: GRAB PICKUP 1 ----------
@@ -247,6 +260,52 @@ public class AutoBlueClose extends LinearOpMode {
 //        outtake();
     }
 
+    private void outtake() {
+        if (!outtaking) {
+            outtaking = true;
+            checkColor();
+            List<Integer> servoSequence = new ArrayList<>();
+            boolean[] used = new boolean[slotColors.length];
+            for (String targetColor : pattern) {
+                for (int i = 0; i < slotColors.length; i++) {
+                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
+                        servoSequence.add(i);  // add servo position corresponding to that slot
+                        used[i] = true;                // mark slot as used
+                        break;                         // move on to next pattern color
+                    }
+                }
+            }
+            for (int i = 0; i < slotColors.length; i++) {
+                if (!used[i]) {
+                    servoSequence.add(i);
+                    used[i] = true;
+                }
+            }
+
+            for (int i = 0; i < servoSequence.size(); i++) {
+                if (outtaking) {
+                    if (servoSequence.get(i)==0){
+                        flick1.setPosition(flicksUp[0]);
+                    } else if (servoSequence.get(i)==1){
+                        flick2.setPosition(flicksUp[1]);
+                    } else if (servoSequence.get(i)==2){
+                        flick3.setPosition(flicksUp[2]);
+                    }
+
+                    sleep(500);
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+                    sleep(500);
+                }
+            }
+            slotColors[0] = "Empty";
+            slotColors[1] = "Empty";
+            slotColors[2] = "Empty";
+            outtaking = false;
+        }
+    }
+
     private void checkPattern() {
         limelight.pipelineSwitch(0);
         LLResult result = limelight.getLatestResult();
@@ -282,158 +341,8 @@ public class AutoBlueClose extends LinearOpMode {
         }
     }
 
-    private void outtake() {
-        sorting2.setPosition(wackDown);
-        List<Double> servoSequence = sequence();
-        // --- Perform outtake motion ---
-        for (double servoPos : servoSequence) {
-
-            odo.update();
-            Pose2D pos = odo.getPosition();
-            telemetry.addData("DEGREES", pos.getHeading(AngleUnit.DEGREES));
-            telemetry.addData("X", pos.getX(DistanceUnit.INCH));
-            telemetry.addData("Y", pos.getY(DistanceUnit.INCH));
-            telemetry.addData("slot 0", slotColors[0]);
-            telemetry.addData("slot 1", slotColors[1]);
-            telemetry.addData("slot 2", slotColors[2]);
-            telemetry.update();
-
-            sorting1.setPosition(servoPos);
-
-            if (opModeIsActive()) {
-                if (Math.abs(lastPos - servoPos) > 0.4) {
-                    sleep(1900);
-                } else if (lastPos != servoPos) {
-                    sleep(800);
-                }
-
-                sorting2.setPosition(wackUp);
-                sleep(400);
-                sorting2.setPosition(wackDown);
-                sleep(200);
-
-                lastPos = servoPos;
-            }
-        }
-
-        // Reset
-        servoIndex = 0;
-        slotColors[0] = "Empty";
-        slotColors[1] = "Empty";
-        slotColors[2] = "Empty";
-    }
-
-    private void generatePermutations(List<Integer> arr, int k, List<List<Integer>> out) {
-        if (k == arr.size()) {
-            out.add(new ArrayList<>(arr));
-            return;
-        }
-        for (int i = k; i < arr.size(); i++) {
-            int temp = arr.get(k);
-            arr.set(k, arr.get(i));
-            arr.set(i, temp);
-
-            generatePermutations(arr, k + 1, out);
-
-            temp = arr.get(k);
-            arr.set(k, arr.get(i));
-            arr.set(i, temp);
-        }
-    }
-
-    private List<Double> sequence(){
-        List<Integer> slotIndices = new ArrayList<>();
-        for (int i = 0; i < slotColors.length; i++) {
-//            if (!slotColors[i].equalsIgnoreCase("Empty"))
-            slotIndices.add(i);
-        }
-
-        // Convert pattern into list for assignment
-        List<String> patternList = new ArrayList<>();
-        for (String p : pattern) patternList.add(p);
-
-        // --- Generate all permutations of slot indices ---
-        List<List<Integer>> permutations = new ArrayList<>();
-        generatePermutations(slotIndices, 0, permutations);
-
-        double bestCost = Double.MAX_VALUE;
-        List<Integer> bestPerm = slotIndices;  // fallback if nothing matches well
-
-        // --- Evaluate each permutation ---
-        for (List<Integer> perm : permutations) {
-            double cost = 0;
-            double currentPos = lastPos;
-            boolean valid = true;
-
-            for (int i = 0; i < patternList.size(); i++) {
-                String targetColor = patternList.get(i);
-                int slotIndex = 0;
-                if (perm.size() > 0){
-                    slotIndex = perm.get(i % perm.size());  // safe wrap if mismatch
-                } else {
-                    break;
-                }
-
-                if (!slotColors[slotIndex].equalsIgnoreCase(targetColor)) {
-                    valid = false;
-                    break;
-                }
-
-                double nextPos = suzano[slotIndex];
-                if (i>0){
-                    cost += Math.abs(nextPos - currentPos);
-                }
-                currentPos = nextPos;
-            }
-
-            if (valid && cost < bestCost) {
-                bestCost = cost;
-                bestPerm = new ArrayList<>(perm);
-            }
-        }
-
-        // --- Build servo sequence from winning permutation ---
-        List<Double> servoSequence = new ArrayList<>();
-        if (bestCost>5){
-            boolean[] used = new boolean[slotColors.length];
-            for (String targetColor : pattern) {
-                for (int i = 0; i < slotColors.length; i++) {
-                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-                        servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
-                        used[i] = true;                // mark slot as used
-                        break;                         // move on to next pattern color
-                    }
-                }
-            }
-            for (int i = 0; i < slotColors.length; i++) {
-                if (!used[i]) {
-                    servoSequence.add(suzano[i]);
-                    used[i] = true;
-                }
-            }
-        } else {
-            for (int idx : bestPerm) {
-                servoSequence.add(suzano[idx]);
-            }
-        }
-
-        if (count > 2){
-            servoSequence.removeIf(pos -> pos == suzano[2]);
-        }
-
-        return servoSequence;
-    }
-
-    private void susanNext(){
-        List<Double> servoSequence = sequence();
-        double servoPos = servoSequence.get(0);
-        sorting1.setPosition(servoPos);
-        lastPos = servoPos;
-    }
 
     private void intakeMacro(){
-        lateral=0;
-        yaw=0;
         servoIndex = 0;
         intakeDone = false;
         new Thread(()->{
@@ -467,7 +376,6 @@ public class AutoBlueClose extends LinearOpMode {
         }
         new Thread(()->{
             sleep(500);
-            susanNext();
         }).start();
         new Thread(()->{
             sleep(1000);
@@ -476,70 +384,51 @@ public class AutoBlueClose extends LinearOpMode {
     }
 
     private void intake() {
-        String ballColor = checkColor();  // Get current detected color
-        sorting1.setPosition(suzani[servoIndex]);
-        lastPos = suzani[servoIndex];
-        telemetry.addData("Intake ready", intakeReady);
-
         intake1.setDirection(DcMotor.Direction.REVERSE);
-        if (ballColor.equals("Unknown")) {
-            intake1.setPower(intakeSpeed);
-            lastBallColor = "Unknown";
-        } else if (intakeReady) {
-            intake1.setPower(0);
-            intakeReady = false;
-//            ballColor = checkColor();
-            lastBallColor = ballColor;
-            // Store color in current slot
-            slotColors[servoIndex] = ballColor;
-
-            new Thread(() -> {
-                sleep(10);
-                if (servoIndex < 2) {
-                    servoIndex++;
-                    sorting1.setPosition(suzani[servoIndex]);
-                } else {
-                    intakeDone = true;
-                }
-                lastPos = suzani[servoIndex];
-                sleep(1000);
-                intakeReady = true;
-            }).start();
-        }
+        intake1.setPower(intakeSpeed);
     }
 
-    private String checkColor() {
-        double red = colorSensor.red();
-        double green = colorSensor.green();
-        double blue = colorSensor.blue();
+    private void checkColor() {
+        double tolerance = 0.06;
         purpleBall = normalizeColor(purpleBall);
         greenBall = normalizeColor(greenBall);
 
-        telemetry.addData("Red", red);
-        telemetry.addData("Green", green);
-        telemetry.addData("Blue", blue);
+        double[] rgb1a = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
+        double[] rgb1b = normalizeColor(new double[]{cs1b.red(), cs1b.green(), cs1b.blue()});
+        double[] rgb2a = normalizeColor(new double[]{cs2a.red(), cs2a.green(), cs2a.blue()});
+        double[] rgb2b = normalizeColor(new double[]{cs2b.red(), cs2b.green(), cs2b.blue()});
+        double[] rgb3a = normalizeColor(new double[]{cs3a.red(), cs3a.green(), cs3a.blue()});
+        double[] rgb3b = normalizeColor(new double[]{cs3b.red(), cs3b.green(), cs3b.blue()});
 
-        // Normalize input
-        double sum = red + green + blue;
-        if (sum > 0) {
-            red /= sum;
-            green /= sum;
-            blue /= sum;
-        }
-        // Compare with *normalized* reference colors
-        double purpleDistance = colorDistance(new double[]{red, green, blue}, purpleBall);
-        double greenDistance = colorDistance(new double[]{red, green, blue}, greenBall);
+        // Check Slot 1
+        double pdist = colorDistance(rgb1a, purpleBall);
+        double gdist = colorDistance(rgb1a, greenBall);
+        double pdist2 = colorDistance(rgb1b, purpleBall);
+        double gdist2 = colorDistance(rgb1b, greenBall);
+        if ((pdist < gdist && pdist < tolerance) || (pdist2 < gdist2 && pdist2 < tolerance))
+            slotColors[0] = "Purple";
+        else if (gdist < pdist && gdist < tolerance || (gdist2 < pdist2 && gdist2 < tolerance))
+            slotColors[0] = "Green";
 
-        String detected = "Unknown";
-        double tolerance = 0.06;  // tuned for normalized distances
+        // Check Slot 2
+        pdist = colorDistance(rgb2a, purpleBall);
+        gdist = colorDistance(rgb2a, greenBall);
+        pdist2 = colorDistance(rgb2b, purpleBall);
+        gdist2 = colorDistance(rgb2b, greenBall);
+        if ((pdist < gdist && pdist < tolerance) || (pdist2 < gdist2 && pdist2 < tolerance))
+            slotColors[1] = "Purple";
+        else if (gdist < pdist && gdist < tolerance || (gdist2 < pdist2 && gdist2 < tolerance))
+            slotColors[1] = "Green";
 
-        if (purpleDistance < greenDistance && purpleDistance < tolerance)
-            detected = "Purple";
-        else if (greenDistance < purpleDistance && greenDistance < tolerance)
-            detected = "Green";
-
-        telemetry.addData("Detected", detected);
-        return detected;
+        // Check Slot 3
+        pdist = colorDistance(rgb3a, purpleBall);
+        gdist = colorDistance(rgb3a, greenBall);
+        pdist2 = colorDistance(rgb3b, purpleBall);
+        gdist2 = colorDistance(rgb3b, greenBall);
+        if ((pdist < gdist && pdist < tolerance) || (pdist2 < gdist2 && pdist2 < tolerance))
+            slotColors[2] = "Purple";
+        else if (gdist < pdist && gdist < tolerance || (gdist2 < pdist2 && gdist2 < tolerance))
+            slotColors[2] = "Green";
     }
 
     private double[] normalizeColor(double[] rgb) {

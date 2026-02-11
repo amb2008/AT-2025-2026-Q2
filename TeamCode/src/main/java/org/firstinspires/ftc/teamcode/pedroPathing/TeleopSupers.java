@@ -26,15 +26,13 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package org.firstinspires.ftc.teamcode.pedroPathing;
-
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import static org.firstinspires.ftc.teamcode.CONSTANTS.*;
-
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -43,7 +41,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
@@ -71,9 +68,6 @@ public class TeleopSupers extends LinearOpMode {
     private Servo flick3 = null;
     private CRServo turret = null;
     private Limelight3A limelight;
-    private double llServoPos = 0.3;
-    double filtX = 0, filtY = 0, filtYaw = 0;
-    boolean firstFrame = true;
     private ColorSensor cs1a;
     private ColorSensor cs1b;
     private ColorSensor cs2a;
@@ -83,8 +77,6 @@ public class TeleopSupers extends LinearOpMode {
     private int servoIndex = 0;  // start at fir
     // st position
     private String[] slotColors = {"Empty", "Empty", "Empty"};
-    private String[] pattern = {"purple", "purple", "green"};
-    private String lastBallColor = "Unknown";
     private boolean sweepingForward = true;
     private boolean intakeReady = true;
     private boolean needPattern = true;
@@ -92,6 +84,8 @@ public class TeleopSupers extends LinearOpMode {
     private boolean wackSet = false;
     private boolean driverLock = false;
     private boolean up = false;
+    double integralSum = 0;
+    double lastError = 0;
 
     //    manual booleans
     private boolean aWasPressed = false;
@@ -99,14 +93,27 @@ public class TeleopSupers extends LinearOpMode {
     private boolean xWasPressed = false;
     private double lastPos = suzani[servoIndex];
     private double fwCurrSpeed = fwFarSpeed;
-    ElapsedTime llTimer = new ElapsedTime();
+    private double turretPower = 0.95;
+    private double targetTagID = 20;
+    private double lastDirection = 1;
+
+    //        AXON ENCODER TRACKING
+    private AnalogInput axonEncoder;
+    private static final double MAX_VOLTAGE = 3.3; // Check your specific hub, usually 3.3V
+    private static final double GEAR_RATIO = 5.0;  // 5:1 Reduction
+    private double lastVoltage = 0;
+    private int rotationCount = 0;
+    // Safety Limits (Degrees)
+    private static final double MAX_TURRET_ANGLE = 180;
+    private static final double MIN_TURRET_ANGLE = -180;
+    ElapsedTime timer = new ElapsedTime();
 
     @Override//
     public void runOpMode() {
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
-        odo.setOffsets(-175.0, 60, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
+        odo.setOffsets(140, 0, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
         odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.REVERSED);
+        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
         odo.resetPosAndIMU();
 
         fL = hardwareMap.get(DcMotorEx.class, "fL");
@@ -120,6 +127,7 @@ public class TeleopSupers extends LinearOpMode {
         flick2 = hardwareMap.get(Servo.class, "flick2");
         flick3 = hardwareMap.get(Servo.class, "flick3");
         turret = hardwareMap.get(CRServo.class, "turret");
+        axonEncoder = hardwareMap.get(AnalogInput.class, "encoder");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.start();
         cs1a = hardwareMap.get(ColorSensor.class, "cs1a");
@@ -158,8 +166,11 @@ public class TeleopSupers extends LinearOpMode {
         runtime.reset();
 
         while (opModeIsActive()) {
+            new Thread(()->{
 //            fwl.setVelocity(fwCurrSpeed);
 //            fwr.setVelocity(fwCurrSpeed);
+                moveTurret();
+            }).start();
             if (!wackSet){
                 wackSet = true;
                 flick1.setPosition(flicksDown[0]);
@@ -167,7 +178,6 @@ public class TeleopSupers extends LinearOpMode {
                 flick3.setPosition(flicksDown[2]);
             }
             limelight.pipelineSwitch(1);
-//            moveTurret();
             driveMecanum();
 
             if (gamepad1.left_trigger >0.1){
@@ -180,7 +190,6 @@ public class TeleopSupers extends LinearOpMode {
                 slotColors[1] = "Empty";
                 slotColors[2] = "Empty";
             }
-
 
             if (gamepad2.y) {
                 new Thread(()->{
@@ -200,7 +209,6 @@ public class TeleopSupers extends LinearOpMode {
                     outtake(outPattern);
                 }).start();
             }
-
 
 //            GAMEPAD 2
             if (gamepad2.left_trigger > 0.1) {
@@ -255,16 +263,6 @@ public class TeleopSupers extends LinearOpMode {
             }
             telemetry.addData("Pressed", aWasPressed);
             telemetry.addData("Up", up);
-//            if (gamepad1.x){
-////                flick1.setPosition(flicksUp[0]);
-//                turret.setPower(0.2);
-//                double turretpos = 5;
-//                telemetry.addData("turret position", slotColors[0]);
-//            }
-//            if (gamepad1.y){
-////                flick1.setPosition(flicksDown[0]);
-//                turret.setPower(-0.2);
-//            }
 
             checkColor();
             telemetry.addData("Slot 1", slotColors[0]);
@@ -332,20 +330,77 @@ public class TeleopSupers extends LinearOpMode {
     }
 
     private void moveTurret() {
-        LLResult result = limelight.getLatestResult();
-        if (llTimer.milliseconds() < 10) return;
-        llTimer.reset();
-
-        if (result != null && result.isValid()) {
-            double tx = result.getTx(); // horizontal offset (deg)
-            double tolerance = 1;
-            if (Math.abs(tx) < tolerance){
-                double power = 1+(tx-4)/4;
-                turret.setPower(power);
-            }
-        } else {
-            turret.setPower(0.9);
+        double currentVoltage = axonEncoder.getVoltage();
+        double currentServoAngle = (currentVoltage / MAX_VOLTAGE) * 360.0;
+        double threshold = MAX_VOLTAGE / 2.0;
+        if (currentVoltage - lastVoltage < -threshold) {
+            rotationCount++;
+        } else if (currentVoltage - lastVoltage > threshold) {
+            rotationCount--;
         }
+        lastVoltage = currentVoltage;
+        double totalServoDegrees = (rotationCount * 360.0) + currentServoAngle;
+        double turretAngle = totalServoDegrees / GEAR_RATIO;
+
+        limelight.pipelineSwitch(1);
+        double outputPower = 0;
+        double tx = 0;
+        boolean locked = false;
+
+        LLResult result = limelight.getLatestResult();
+        if (result != null && result.isValid()) {
+            for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                if (tag.getFiducialId() == targetTagID) {
+                    tx = tag.getTargetXDegrees();
+                    lastDirection = Math.signum(tx)*1;
+                    locked = true;
+                    break;
+                }
+            }
+        }
+        if (Math.abs(turretAngle) > MAX_TURRET_ANGLE || !locked){
+            integralSum = 0;
+            if (turretAngle >= MAX_TURRET_ANGLE) {
+                lastDirection = -1;
+            } else if (turretAngle <= MIN_TURRET_ANGLE) {
+                lastDirection = 1;
+            }
+            turretPower = 0.99*lastDirection;
+            turret.setPower(turretPower);
+            telemetry.addLine("SWEEPING");
+        }
+        else if (locked) {
+            double error = tx;
+            double dt = timer.seconds();
+            if (dt == 0) dt = 0.001; // Safety
+
+            if (Math.abs(error) < 15.0) { // Only accumulate I if relatively close
+                integralSum += (error * dt);
+            } else {
+                integralSum = 0; // Reset if far away
+            }
+            double errorRate = (error - lastError) / dt;
+            errorRate = Range.clip(errorRate, -100, 100);
+
+            double pTerm = turretkP * error;
+            double iTerm = turretkI * integralSum;
+            double dTerm = turretkD * errorRate;
+            double fTerm = 0;
+            if (Math.abs(error) > 3.0) {  // degrees
+                fTerm = Math.signum(error) * turretkF;
+            }
+            outputPower = pTerm + iTerm + dTerm + fTerm;
+            lastError = error;
+            timer.reset();
+            if (Math.abs(error) > 1) {
+                turret.setPower(Range.clip(outputPower, -0.75, 0.75));
+            } else {
+                turret.setPower(0);
+            }
+            telemetry.addLine("LOCKED");
+        }
+        telemetry.addData("Angle", turretAngle);
+        telemetry.addData("Rotation count", rotationCount);
     }
 
     private void intake() {

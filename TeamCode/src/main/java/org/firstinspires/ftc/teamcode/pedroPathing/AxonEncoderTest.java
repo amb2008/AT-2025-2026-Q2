@@ -28,13 +28,21 @@ import com.qualcomm.robotcore.hardware.CRServo;
 public class AxonEncoderTest extends OpMode {
 
     // Define hardware variables
-    private CRServo axonServo;
+    private CRServo turret;
     private AnalogInput axonEncoder;
+    private static final double MAX_VOLTAGE = 3.3; // Check your specific hub, usually 3.3V
+    private static final double GEAR_RATIO = 5.0;  // 5:1 Reduction
+    private double lastVoltage = 0;
+    private int rotationCount = 0;
+    // Safety Limits (Degrees)
+    private static final double MAX_TURRET_ANGLE = 180;
+    private static final double MIN_TURRET_ANGLE = -180;
+
 
     @Override
     public void init() {
         // Initialize the hardware variables using the names from your config
-        axonServo = hardwareMap.get(CRServo.class, "axon");
+        turret = hardwareMap.get(CRServo.class, "turret");
         axonEncoder = hardwareMap.get(AnalogInput.class, "encoder");
 
         telemetry.addData("Status", "Initialized");
@@ -45,24 +53,66 @@ public class AxonEncoderTest extends OpMode {
         // CONTROL: Use Gamepad Triggers to spin the servo
         // Right Trigger spins forward, Left Trigger spins backward
         double power = gamepad1.right_trigger - gamepad1.left_trigger;
-        axonServo.setPower(power);
+        turret.setPower(power);
+//
+//        // SENSING: Read the analog voltage
+//        // The Axon absolute encoder outputs 0V to 3.3V
+//        double voltage = axonEncoder.getVoltage();
+//
+//        // MATH: Convert voltage to degrees (0 - 360)
+//        // 3.3V is the max range of the encoder
+//        double degrees = (voltage / 3.3) * 360;
+//
 
-        // SENSING: Read the analog voltage
-        // The Axon absolute encoder outputs 0V to 3.3V
-        double voltage = axonEncoder.getVoltage();
-
-        // MATH: Convert voltage to degrees (0 - 360)
-        // 3.3V is the max range of the encoder
-        double degrees = (voltage / 3.3) * 360;
-
+        double angle = getTurretAngle();
         // FEEDBACK: Show data on the Driver Station screen
-        telemetry.addData("Servo Power", "%.2f", power);
-        telemetry.addData("Encoder Voltage", "%.3f V", voltage);
-        telemetry.addData("Estimated Degrees", "%.1f deg", degrees);
+    }
 
-        // This helps you see the "wrap around" point
-        telemetry.addData("Raw Max Voltage", "%.1f", axonEncoder.getMaxVoltage());
+    public double getTurretAngle() {
+        double currentVoltage = axonEncoder.getVoltage();
+
+        // Calculate the raw angle of the axonServo itself (0-360)
+        double currentServoAngle = (currentVoltage / MAX_VOLTAGE) * 360.0;
+
+        // Detect Wraparound
+        // Threshold: If jump is > 50% of range (1.65V), it's a wrap
+        double threshold = MAX_VOLTAGE / 2.0;
+
+        if (currentVoltage - lastVoltage < -threshold) {
+            // Jumped from High to Low (CW rotation completed)
+            rotationCount++;
+        } else if (currentVoltage - lastVoltage > threshold) {
+            // Jumped from Low to High (CCW rotation completed)
+            rotationCount--;
+        }
+
+        lastVoltage = currentVoltage;
+
+        // Math: Total Servo Degrees / Gear Ratio
+        double totalServoDegrees = (rotationCount * 360.0) + currentServoAngle;
+        double turretAngle = totalServoDegrees / GEAR_RATIO;
+
+        telemetry.addData("Angle", turretAngle);
+        telemetry.addData("Total Servo Degrees", totalServoDegrees);
+        telemetry.addData("Encoder Voltage", "%.3f V", currentVoltage);
+        telemetry.addData("Last Voltage", "%.1f deg", lastVoltage);
+        telemetry.addData("Rotation count", rotationCount);
 
         telemetry.update();
+
+        return turretAngle;
+    }
+
+    public void setPower(double power) {
+        double currentAngle = getTurretAngle();
+
+        // SOFT LIMITS: Prevent cable snapping
+        if (power > 0 && currentAngle >= MAX_TURRET_ANGLE) {
+            turret.setPower(0); // Stop if trying to go past +180
+        } else if (power < 0 && currentAngle <= MIN_TURRET_ANGLE) {
+            turret.setPower(0); // Stop if trying to go past -180
+        } else {
+            turret.setPower(power);
+        }
     }
 }
