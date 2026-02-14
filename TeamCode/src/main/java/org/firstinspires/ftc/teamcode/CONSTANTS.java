@@ -17,9 +17,14 @@ public class CONSTANTS {
     public static final double llServoMax = 1;
     //    static final double[] suzani = {0.1, 0.48, .83};
     public static final double[] suzani = {0.19, 0.56, 0.93};
+//    Location of tags
+    public static final double mtBlueX = 1.482;
+    public static final double mtBlueY = -1.413;
+    public static final double mtRedX = 1.482;
+    public static final double mtRedY = 1.413;
 
 //    TURRET
-    public static final double turretkP = 0.016;
+    public static final double turretkP = 0.014;
     public static final double turretkI = 0.00;
     public static final double turretkD = 0.002;
     public static final double turretkF = 0.01;

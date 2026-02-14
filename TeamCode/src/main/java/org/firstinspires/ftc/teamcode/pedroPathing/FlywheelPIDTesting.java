@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.pedroPathing;
 
 import static org.firstinspires.ftc.teamcode.CONSTANTS.flicksDown;
 import static org.firstinspires.ftc.teamcode.CONSTANTS.flicksUp;
+import static org.firstinspires.ftc.teamcode.CONSTANTS.mtBlueX;
+import static org.firstinspires.ftc.teamcode.CONSTANTS.mtBlueY;
 
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -36,10 +38,10 @@ public class FlywheelPIDTesting extends LinearOpMode {
     private IMU imu;
 
     // Single PID controller for both motors
-    PIDController pid = new PIDController(0.0115, 0.0, 0.0);
+    PIDController pid = new PIDController(0.0445, 0.0, 0.0);
 
     // Target velocity (ticks/sec)
-    double targetVelocity = 1100;
+    double targetVelocity = 600;
     double velocityIncrement = 20; // ticks/sec per D-pad press
 
     // PID tuning increments
@@ -136,7 +138,7 @@ public class FlywheelPIDTesting extends LinearOpMode {
                     flick3.setPosition(flicksUp[2]);
                 }
             }
-            if (!gamepad1.a && !gamepad1.b && !gamepad1.x){
+            if (!gamepad2.a && !gamepad2.b && !gamepad2.x){
                 aWasPressed = false;
             }
 
@@ -241,6 +243,7 @@ public class FlywheelPIDTesting extends LinearOpMode {
 
             telemetry.addLine("\n=== FLYWHEEL VELOCITY ===");
             telemetry.addData("Target Velocity", targetVelocity);
+            telemetry.addData("Real Velocity", avgVelocity);
             telemetry.addData("Left Velocity", leftVelocity);
             telemetry.addData("Right Velocity", rightVelocity);
 
@@ -260,11 +263,9 @@ public double getDistance(double camX, double camY){
 //      double scale = 38665.95;
 //      double distance = (scale/ta);
 //      return distance;
-    double mtBlueX = -1.482;
-    double mtBlueY = -1.413;
-    double mtRedX = 1.482;
-    double mtRedY = 1.413;
-    double distance = Math.sqrt(Math.pow((mtRedX-camX), 2) + Math.pow((mtRedY-camY),2));
+
+//    RED: double distance = Math.sqrt(Math.pow((mtRedX-camX), 2) + Math.pow((mtRedY-camY),2));
+    double distance = Math.sqrt(Math.pow((mtBlueX-camX), 2) + Math.pow((mtBlueY-camY),2)); // BLUE
     return distance;
 }
 }

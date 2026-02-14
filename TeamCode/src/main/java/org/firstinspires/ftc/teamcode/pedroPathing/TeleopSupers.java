@@ -28,6 +28,7 @@
  */
 package org.firstinspires.ftc.teamcode.pedroPathing;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -37,6 +38,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -107,6 +109,13 @@ public class TeleopSupers extends LinearOpMode {
     // Safety Limits (Degrees)
     private static final double MAX_TURRET_ANGLE = 180;
     private static final double MIN_TURRET_ANGLE = -180;
+//    FLYWHEEL
+    private IMU imu;
+    PIDController pid = new PIDController(0.0445, 0.0, 0.0);
+    final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
+    final double TICKS_PER_REV = 28;        // Encoder CPR
+    final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
+    double targetVelocity = 500;
     ElapsedTime timer = new ElapsedTime();
 
     @Override//
@@ -137,6 +146,12 @@ public class TeleopSupers extends LinearOpMode {
         cs2b = hardwareMap.get(ColorSensor.class, "cs2b");
         cs3a = hardwareMap.get(ColorSensor.class, "cs3a");
         cs3b = hardwareMap.get(ColorSensor.class, "cs3b");
+//        FLYWHEEL
+        imu = hardwareMap.get(IMU.class, "imu");
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
 
         fL.setDirection(DcMotor.Direction.FORWARD);
         fL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -150,8 +165,8 @@ public class TeleopSupers extends LinearOpMode {
         bR.setDirection(DcMotor.Direction.REVERSE);
         bR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        fwl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        fwr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        fwl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        fwr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         fwl.setDirection(DcMotor.Direction.REVERSE);
         fwr.setDirection(DcMotor.Direction.FORWARD);
@@ -169,6 +184,7 @@ public class TeleopSupers extends LinearOpMode {
         while (opModeIsActive()) {
 //            fwl.setVelocity(fwCurrSpeed);
 //            fwr.setVelocity(fwCurrSpeed);
+            fwOn();
             moveTurret();
             if (!wackSet){
                 wackSet = true;
@@ -366,6 +382,7 @@ public class TeleopSupers extends LinearOpMode {
             }
             turretPower = 0.99*lastDirection;
             turret.setPower(turretPower);
+            telemetry.addData("Last direction", lastDirection);
             telemetry.addLine("SWEEPING");
         }
         else if (locked) {
@@ -409,57 +426,105 @@ public class TeleopSupers extends LinearOpMode {
         }
     }
 
+//    private void outtake(String[] outPattern) {
+//        if (!outtaking) {
+//            outtaking = true;
+//            checkColor();
+//            List<Integer> servoSequence = new ArrayList<>();
+//            boolean[] used = new boolean[slotColors.length];
+//            for (String targetColor : outPattern) {
+//                for (int i = 0; i < slotColors.length; i++) {
+//                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
+//                        servoSequence.add(i);  // add servo position corresponding to that slot
+//                        used[i] = true;                // mark slot as used
+//                        break;                         // move on to next pattern color
+//                    }
+//                }
+//            }
+//            for (int i = 0; i < slotColors.length; i++) {
+//                if (!used[i]) {
+//                    servoSequence.add(i);
+//                    used[i] = true;
+//                }
+//            }
+//
+//            for (int i = 0; i < servoSequence.size(); i++) {
+//                if (outtaking) {
+//                    if (servoSequence.get(i)==0){
+//                        flick1.setPosition(flicksUp[0]);
+//                    } else if (servoSequence.get(i)==1){
+//                        flick2.setPosition(flicksUp[1]);
+//                    } else if (servoSequence.get(i)==2){
+//                        flick3.setPosition(flicksUp[2]);
+//                    }
+//
+//                    sleep(500);
+//                    flick1.setPosition(flicksDown[0]);
+//                    flick2.setPosition(flicksDown[1]);
+//                    flick3.setPosition(flicksDown[2]);
+//                    sleep(500);
+//                }
+//            }
+//            slotColors[0] = "Empty";
+//            slotColors[1] = "Empty";
+//            slotColors[2] = "Empty";
+//            outtaking = false;
+//        }
+//    }
+
     private void outtake(String[] outPattern) {
         if (!outtaking) {
             outtaking = true;
-            checkColor();
-            List<Integer> servoSequence = new ArrayList<>();
-            boolean[] used = new boolean[slotColors.length];
             for (String targetColor : outPattern) {
-                for (int i = 0; i < slotColors.length; i++) {
-                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-                        servoSequence.add(i);  // add servo position corresponding to that slot
-                        used[i] = true;                // mark slot as used
-                        break;                         // move on to next pattern color
+                boolean launched = false;
+                checkColor();
+                for (int i = 0; i < slotColors.length; i++){
+                    if (slotColors[i].equalsIgnoreCase(targetColor)){
+                        if (i==0){
+                            flick1.setPosition(flicksUp[0]);
+                        } else if (i==1){
+                            flick2.setPosition(flicksUp[1]);
+                        } else if (i==2){
+                            flick3.setPosition(flicksUp[2]);
+                        }
+                        launched = true;
+                        break;
                     }
                 }
-            }
-            for (int i = 0; i < slotColors.length; i++) {
-                if (!used[i]) {
-                    servoSequence.add(i);
-                    used[i] = true;
-                }
-            }
-
-            for (int i = 0; i < servoSequence.size(); i++) {
-                if (outtaking) {
-                    if (servoSequence.get(i)==0){
-                        flick1.setPosition(flicksUp[0]);
-                    } else if (servoSequence.get(i)==1){
-                        flick2.setPosition(flicksUp[1]);
-                    } else if (servoSequence.get(i)==2){
-                        flick3.setPosition(flicksUp[2]);
+                if (!launched){
+                    for (int i = 0; i < slotColors.length; i++){
+                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")){
+                            if (i==0){
+                                flick1.setPosition(flicksUp[0]);
+                            } else if (i==1){
+                                flick2.setPosition(flicksUp[1]);
+                            } else if (i==2){
+                                flick3.setPosition(flicksUp[2]);
+                            }
+                            launched = true;
+                            break;
+                        }
                     }
-
+                }
+                if (launched){
                     sleep(500);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
-                    sleep(500);
                 }
             }
-            slotColors[0] = "Empty";
-            slotColors[1] = "Empty";
-            slotColors[2] = "Empty";
             outtaking = false;
         }
     }
 
 
     private void checkColor() {
-        double tolerance = 0.06;
+        double tolerance = 0.07;
         purpleBall = normalizeColor(purpleBall);
         greenBall = normalizeColor(greenBall);
+        slotColors[0] = "Empty";
+        slotColors[1] = "Empty";
+        slotColors[2] = "Empty";
 
         double[] rgb1a = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
         double[] rgb1b = normalizeColor(new double[]{cs1b.red(), cs1b.green(), cs1b.blue()});
@@ -497,6 +562,39 @@ public class TeleopSupers extends LinearOpMode {
             slotColors[2] = "Purple";
         else if (gdist < pdist && gdist < tolerance || (gdist2 < pdist2 && gdist2 < tolerance))
             slotColors[2] = "Green";
+    }
+
+    private void fwOn(){
+        //limelight stuff
+        limelight.updateRobotOrientation(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
+        LLResult llResult = limelight.getLatestResult();
+        if (llResult != null && llResult.isValid()){
+            Pose3D botpose = llResult.getBotpose();
+            double camX  = -botpose.getPosition().x;
+            double camY  = botpose.getPosition().y;
+            double distance = Math.sqrt(Math.pow((mtBlueX-camX), 2) + Math.pow((mtBlueY-camY),2));
+            targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
+            telemetry.addData("Distance", distance);
+            telemetry.addData("Target velocity", targetVelocity);
+        } else {
+            telemetry.addLine("No result");
+        }
+
+        double leftVelocity = fwl.getVelocity();
+        double rightVelocity = fwr.getVelocity();
+        telemetry.addData("Left velocity", leftVelocity);
+        telemetry.addData("Right velocity", rightVelocity);
+        double avgVelocity = (leftVelocity + rightVelocity) / 2.0;
+
+        pid.setSetpoint(targetVelocity);
+        double pidOutput = pid.update(avgVelocity);
+        // Feedforward based on max motor velocity
+        double feedforward = targetVelocity / MAX_VELOCITY;
+        pidOutput += feedforward;
+        pidOutput = Math.max(0, Math.min(pidOutput, 1));
+
+        fwl.setPower(pidOutput);
+        fwr.setPower(pidOutput);
     }
 
     private double[] normalizeColor(double[] rgb) {

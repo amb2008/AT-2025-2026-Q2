@@ -32,16 +32,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Autonomous(name = "BLUE - Close",group="Robot")
-@Disabled
 public class AutoBlueClose extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
     private final Pose scorePose = new Pose(59, 94, Math.toRadians(185));
-    private final Pose scorePose2 = new Pose(56, 94, Math.toRadians(185));
+    private final Pose scorePose2 = new Pose(54, 94, Math.toRadians(185));
     private final Pose pickup1Pose = new Pose(49.5, 89, Math.toRadians(186));
     private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
-    private final Pose pickup3Pose = new Pose(49, 28, Math.toRadians(180));
+    private final Pose pickup3Pose = new Pose(49, 47, Math.toRadians(185));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
@@ -172,8 +171,8 @@ public class AutoBlueClose extends LinearOpMode {
         bR.setDirection(DcMotor.Direction.REVERSE);
         bR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        fwl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        fwr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        fwl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        fwr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         fwl.setDirection(DcMotor.Direction.REVERSE);
         fwr.setDirection(DcMotor.Direction.FORWARD);
@@ -218,51 +217,66 @@ public class AutoBlueClose extends LinearOpMode {
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
-            fwOn();
             follower.update();
-
+            telemetry.addLine("Following path");
+            telemetry.update();
         }
-        sleep(150);
-        headingCorrect(pickup1Pose.getHeading());
+        telemetry.addLine("Path finished");
+        telemetry.update();
         intakeMacro();
         // --------- STEP 3: SCORE PICKUP 1 ----------
         follower.followPath(scorePickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
         }
-        headingCorrect2(scorePose2.getHeading());
-        sleep(100);
+        telemetry.addLine("Path finished");
+        telemetry.update();
         outtake();
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
         }
-        headingCorrect(pickup1Pose.getHeading());
+        telemetry.addLine("Path finished");
+        telemetry.update();
         intakeMacro();
 
         // --------- STEP 5: SCORE PICKUP 2 ----------
-//        follower.followPath(scorePickup2, true);
-//        while (opModeIsActive() && follower.isBusy()) {
-//            follower.update();
-//        }
-//        headingCorrect(scorePose2.getHeading());
-//        outtake();
-//
-//
-//        // --------- STEP 6: GRAB PICKUP 3 ----------
-//        follower.followPath(grabPickup3, true);
-//        while (opModeIsActive() && follower.isBusy()) {
-//            follower.update();
-//        }
-//        intakeMacro();
-//
-//        // --------- STEP 7: SCORE PICKUP 3 ----------
-//        follower.followPath(scorePickup3, true);
-//        while (opModeIsActive() && follower.isBusy()) {
-//            follower.update();
-//        }
-//        outtake();
+        follower.followPath(scorePickup2, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        outtake();
+
+        // --------- STEP 6: GRAB PICKUP 3 ----------
+        follower.followPath(grabPickup3, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        intakeMacro();
+
+        // --------- STEP 7: SCORE PICKUP 3 ----------
+        follower.followPath(scorePickup3, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        outtake();
     }
 
     private void outtake() {
@@ -414,10 +428,11 @@ public class AutoBlueClose extends LinearOpMode {
             while (!intakeDone){
                 intake();
             }
+            intake1.setPower(0);
         }).start();
         driveRelativeX(-20);
         new Thread(()->{
-            sleep(1000);
+            sleep(500);
             intakeDone = true;
         }).start();
     }
@@ -617,9 +632,7 @@ public class AutoBlueClose extends LinearOpMode {
             if (Math.abs(error) < 0.2) {
                 break;
             }
-
-            // Scale power as you approach the target (smooth stop)
-            double power = -0.1*Math.signum(error);   // apply sign
+            double power = -0.3*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);
@@ -633,9 +646,6 @@ public class AutoBlueClose extends LinearOpMode {
         bL.setPower(0);
         bR.setPower(0);
     }
-
-
-
 
     private void fwOn(){
         double leftVelocity  = fwl.getVelocity();
