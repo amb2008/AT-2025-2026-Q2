@@ -38,7 +38,7 @@ public class CONSTANTS {
 //    0.16  0.53  0.91
     public static final double searchSpeed = 0.02;
     public static double[] purpleBall = {145, 175, 250, 190};
-    public static double[] greenBall = {55, 142, 113, 103};
+    public static double[] greenBall = {936, 3755, 2464, 103};
     //    BLUE
     public static final double blueX = 1.0;
     public static final double blueY = -0.5;

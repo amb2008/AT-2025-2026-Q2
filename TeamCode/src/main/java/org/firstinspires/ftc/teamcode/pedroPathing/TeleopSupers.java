@@ -426,56 +426,15 @@ public class TeleopSupers extends LinearOpMode {
         }
     }
 
-//    private void outtake(String[] outPattern) {
-//        if (!outtaking) {
-//            outtaking = true;
-//            checkColor();
-//            List<Integer> servoSequence = new ArrayList<>();
-//            boolean[] used = new boolean[slotColors.length];
-//            for (String targetColor : outPattern) {
-//                for (int i = 0; i < slotColors.length; i++) {
-//                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-//                        servoSequence.add(i);  // add servo position corresponding to that slot
-//                        used[i] = true;                // mark slot as used
-//                        break;                         // move on to next pattern color
-//                    }
-//                }
-//            }
-//            for (int i = 0; i < slotColors.length; i++) {
-//                if (!used[i]) {
-//                    servoSequence.add(i);
-//                    used[i] = true;
-//                }
-//            }
-//
-//            for (int i = 0; i < servoSequence.size(); i++) {
-//                if (outtaking) {
-//                    if (servoSequence.get(i)==0){
-//                        flick1.setPosition(flicksUp[0]);
-//                    } else if (servoSequence.get(i)==1){
-//                        flick2.setPosition(flicksUp[1]);
-//                    } else if (servoSequence.get(i)==2){
-//                        flick3.setPosition(flicksUp[2]);
-//                    }
-//
-//                    sleep(500);
-//                    flick1.setPosition(flicksDown[0]);
-//                    flick2.setPosition(flicksDown[1]);
-//                    flick3.setPosition(flicksDown[2]);
-//                    sleep(500);
-//                }
-//            }
-//            slotColors[0] = "Empty";
-//            slotColors[1] = "Empty";
-//            slotColors[2] = "Empty";
-//            outtaking = false;
-//        }
-//    }
-
     private void outtake(String[] outPattern) {
         if (!outtaking) {
             outtaking = true;
+            double counter = 0;
             for (String targetColor : outPattern) {
+                if (counter>0){
+                    sleep(100);
+                }
+                counter += 1;
                 boolean launched = false;
                 checkColor();
                 for (int i = 0; i < slotColors.length; i++){
@@ -507,7 +466,7 @@ public class TeleopSupers extends LinearOpMode {
                     }
                 }
                 if (launched){
-                    sleep(500);
+                    sleep(900);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
@@ -532,6 +491,9 @@ public class TeleopSupers extends LinearOpMode {
         double[] rgb2b = normalizeColor(new double[]{cs2b.red(), cs2b.green(), cs2b.blue()});
         double[] rgb3a = normalizeColor(new double[]{cs3a.red(), cs3a.green(), cs3a.blue()});
         double[] rgb3b = normalizeColor(new double[]{cs3b.red(), cs3b.green(), cs3b.blue()});
+//        telemetry.addData("Red", cs1a.red());
+//        telemetry.addData("Green", cs1a.green());
+//        telemetry.addData("Blue", cs1a.blue());
 
         // Check Slot 1
         double pdist = colorDistance(rgb1a, purpleBall);
@@ -574,6 +536,7 @@ public class TeleopSupers extends LinearOpMode {
             double camY  = botpose.getPosition().y;
             double distance = Math.sqrt(Math.pow((mtBlueX-camX), 2) + Math.pow((mtBlueY-camY),2));
             targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
+            targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
             telemetry.addData("Distance", distance);
             telemetry.addData("Target velocity", targetVelocity);
         } else {
