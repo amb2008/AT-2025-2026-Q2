@@ -39,8 +39,8 @@ public class AutoBlueClose extends LinearOpMode {
     private final Pose scorePose = new Pose(59, 94, Math.toRadians(185));
     private final Pose scorePose2 = new Pose(54, 94, Math.toRadians(185));
     private final Pose pickup1Pose = new Pose(49.5, 89, Math.toRadians(186));
-    private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
-    private final Pose pickup3Pose = new Pose(49, 47, Math.toRadians(185));
+    private final Pose pickup2Pose = new Pose(50, 68, Math.toRadians(185));
+    private final Pose pickup3Pose = new Pose(49, 48, Math.toRadians(185));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
