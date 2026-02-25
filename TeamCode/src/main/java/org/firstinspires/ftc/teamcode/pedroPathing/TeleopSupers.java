@@ -199,6 +199,9 @@ public class TeleopSupers extends LinearOpMode {
                 fwCurrSpeed = fwNearSpeed;
             } else if (gamepad1.right_trigger >0.1){
                 fwCurrSpeed = fwFarSpeed;
+            } else if (gamepad2.dpad_down) {
+               fwOff();
+
             }
             if (gamepad1.y){
                 slotColors[0] = "Empty";
@@ -524,6 +527,10 @@ public class TeleopSupers extends LinearOpMode {
             slotColors[2] = "Purple";
         else if (gdist < pdist && gdist < tolerance || (gdist2 < pdist2 && gdist2 < tolerance))
             slotColors[2] = "Green";
+    }
+    private void fwOff() {
+        fwl.setPower(0);
+        fwr.setPower(0);
     }
 
     private void fwOn(){
