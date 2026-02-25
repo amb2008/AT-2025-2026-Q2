@@ -116,6 +116,8 @@ public class TeleopSupers extends LinearOpMode {
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
     double targetVelocity = 500;
+
+    boolean fwoff = false;
     ElapsedTime timer = new ElapsedTime();
 
     @Override//
@@ -184,7 +186,9 @@ public class TeleopSupers extends LinearOpMode {
         while (opModeIsActive()) {
 //            fwl.setVelocity(fwCurrSpeed);
 //            fwr.setVelocity(fwCurrSpeed);
-            fwOn();
+            if (!fwoff){
+                fwOn();
+            }
             moveTurret();
             if (!wackSet){
                 wackSet = true;
@@ -197,8 +201,10 @@ public class TeleopSupers extends LinearOpMode {
 
             if (gamepad1.left_trigger >0.1){
                 fwCurrSpeed = fwNearSpeed;
+                fwoff = false;
             } else if (gamepad1.right_trigger >0.1){
                 fwCurrSpeed = fwFarSpeed;
+                fwoff = false;
             } else if (gamepad2.dpad_down) {
                fwOff();
 
@@ -538,6 +544,7 @@ public class TeleopSupers extends LinearOpMode {
     private void fwOff() {
         fwl.setPower(0);
         fwr.setPower(0);
+        fwoff = true;
     }
 
     private void fwOn(){
