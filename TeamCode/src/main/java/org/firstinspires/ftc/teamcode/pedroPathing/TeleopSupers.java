@@ -111,7 +111,7 @@ public class TeleopSupers extends LinearOpMode {
     private static final double MIN_TURRET_ANGLE = -180;
 //    FLYWHEEL
     private IMU imu;
-    PIDController pid = new PIDController(0.0445, 0.0, 0.0);
+    PIDController pid = new PIDController(0.043, 0.0, 0.0);
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
@@ -434,9 +434,6 @@ public class TeleopSupers extends LinearOpMode {
             outtaking = true;
             double counter = 0;
             for (String targetColor : outPattern) {
-                if (counter>0){
-                    sleep(100);
-                }
                 counter += 1;
                 boolean launched = false;
                 checkColor();
@@ -473,6 +470,16 @@ public class TeleopSupers extends LinearOpMode {
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
+                }
+
+                checkColor();
+                if (counter<3){
+                    sleep(400);
+                }
+                if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
+                    outtaking = false;
+                    outtake(outPattern);
+                    telemetry.addLine("Outtaking again!");
                 }
             }
             outtaking = false;

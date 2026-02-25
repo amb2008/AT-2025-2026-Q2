@@ -9,6 +9,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -18,6 +19,7 @@ import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -27,6 +29,7 @@ import static org.firstinspires.ftc.teamcode.CONSTANTS.*;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,10 +40,10 @@ public class AutoBlueClose extends LinearOpMode {
     private Follower follower;
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
     private final Pose scorePose = new Pose(59, 94, Math.toRadians(185));
-    private final Pose scorePose2 = new Pose(54, 94, Math.toRadians(185));
-    private final Pose pickup1Pose = new Pose(49.5, 89, Math.toRadians(186));
-    private final Pose pickup2Pose = new Pose(50, 68, Math.toRadians(185));
-    private final Pose pickup3Pose = new Pose(49, 48, Math.toRadians(185));
+    private final Pose scorePose2 = new Pose(51, 91, Math.toRadians(185));
+    private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(186));
+    private final Pose pickup2Pose = new Pose(50, 70, Math.toRadians(185));
+    private final Pose pickup3Pose = new Pose(49, 46, Math.toRadians(185));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
@@ -84,13 +87,15 @@ public class AutoBlueClose extends LinearOpMode {
     private double turretPower = 0.95;
     private double targetTagID = 20;
     private double lastDirection = 1;
+    double targetVelocity = 500;
     double lastError = 0;
     // Safety Limits (Degrees)
     private static final double MAX_TURRET_ANGLE = 180;
     private static final double MIN_TURRET_ANGLE = -180;
 
     //    FLYWHEEL
-    PIDController pid = new PIDController(0.0115, 0.0, 0.0);
+    PIDController pid = new PIDController(0.043, 0.0, 0.0);
+    private IMU imu;
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
@@ -121,12 +126,12 @@ public class AutoBlueClose extends LinearOpMode {
 
         grabPickup3 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose2, pickup3Pose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup3Pose.getHeading())
+                .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup3Pose.getHeading())
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup3Pose, scorePose))
-                .setLinearHeadingInterpolation(pickup3Pose.getHeading(), scorePose.getHeading())
+                .addPath(new BezierLine(pickup3Pose, scorePose2))
+                .setLinearHeadingInterpolation(pickup3Pose.getHeading(), scorePose2.getHeading())
                 .build();
     }
 
@@ -158,6 +163,13 @@ public class AutoBlueClose extends LinearOpMode {
         cs2b = hardwareMap.get(ColorSensor.class, "cs2b");
         cs3a = hardwareMap.get(ColorSensor.class, "cs3a");
         cs3b = hardwareMap.get(ColorSensor.class, "cs3b");
+
+        //        FLYWHEEL
+        imu = hardwareMap.get(IMU.class, "imu");
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
 
         fL.setDirection(DcMotor.Direction.FORWARD);
         fL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -282,45 +294,56 @@ public class AutoBlueClose extends LinearOpMode {
     private void outtake() {
         if (!outtaking) {
             outtaking = true;
-            checkColor();
-            List<Integer> servoSequence = new ArrayList<>();
-            boolean[] used = new boolean[slotColors.length];
+            double counter = 0;
             for (String targetColor : pattern) {
-                for (int i = 0; i < slotColors.length; i++) {
-                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-                        servoSequence.add(i);  // add servo position corresponding to that slot
-                        used[i] = true;                // mark slot as used
-                        break;                         // move on to next pattern color
+                counter += 1;
+                boolean launched = false;
+                checkColor();
+                for (int i = 0; i < slotColors.length; i++){
+                    if (slotColors[i].equalsIgnoreCase(targetColor)){
+                        if (i==0){
+                            flick1.setPosition(flicksUp[0]);
+                        } else if (i==1){
+                            flick2.setPosition(flicksUp[1]);
+                        } else if (i==2){
+                            flick3.setPosition(flicksUp[2]);
+                        }
+                        launched = true;
+                        break;
                     }
                 }
-            }
-            for (int i = 0; i < slotColors.length; i++) {
-                if (!used[i]) {
-                    servoSequence.add(i);
-                    used[i] = true;
-                }
-            }
-
-            for (int i = 0; i < servoSequence.size(); i++) {
-                if (outtaking) {
-                    if (servoSequence.get(i)==0){
-                        flick1.setPosition(flicksUp[0]);
-                    } else if (servoSequence.get(i)==1){
-                        flick2.setPosition(flicksUp[1]);
-                    } else if (servoSequence.get(i)==2){
-                        flick3.setPosition(flicksUp[2]);
+                if (!launched){
+                    for (int i = 0; i < slotColors.length; i++){
+                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")){
+                            if (i==0){
+                                flick1.setPosition(flicksUp[0]);
+                            } else if (i==1){
+                                flick2.setPosition(flicksUp[1]);
+                            } else if (i==2){
+                                flick3.setPosition(flicksUp[2]);
+                            }
+                            launched = true;
+                            break;
+                        }
                     }
-
-                    sleep(500);
+                }
+                if (launched){
+                    sleep(900);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
-                    sleep(500);
+                }
+
+                checkColor();
+                if (counter<3){
+                    sleep(400);
+                }
+                if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
+                    outtaking = false;
+                    outtake();
+                    telemetry.addLine("Outtaking again!");
                 }
             }
-            slotColors[0] = "Empty";
-            slotColors[1] = "Empty";
-            slotColors[2] = "Empty";
             outtaking = false;
         }
     }
@@ -443,9 +466,12 @@ public class AutoBlueClose extends LinearOpMode {
     }
 
     private void checkColor() {
-        double tolerance = 0.06;
+        double tolerance = 0.07;
         purpleBall = normalizeColor(purpleBall);
         greenBall = normalizeColor(greenBall);
+        slotColors[0] = "Empty";
+        slotColors[1] = "Empty";
+        slotColors[2] = "Empty";
 
         double[] rgb1a = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
         double[] rgb1b = normalizeColor(new double[]{cs1b.red(), cs1b.green(), cs1b.blue()});
@@ -453,6 +479,9 @@ public class AutoBlueClose extends LinearOpMode {
         double[] rgb2b = normalizeColor(new double[]{cs2b.red(), cs2b.green(), cs2b.blue()});
         double[] rgb3a = normalizeColor(new double[]{cs3a.red(), cs3a.green(), cs3a.blue()});
         double[] rgb3b = normalizeColor(new double[]{cs3b.red(), cs3b.green(), cs3b.blue()});
+//        telemetry.addData("Red", cs1a.red());
+//        telemetry.addData("Green", cs1a.green());
+//        telemetry.addData("Blue", cs1a.blue());
 
         // Check Slot 1
         double pdist = colorDistance(rgb1a, purpleBall);
@@ -494,129 +523,6 @@ public class AutoBlueClose extends LinearOpMode {
         return Math.sqrt(Math.pow(c1[0] - c2[0], 2) + Math.pow(c1[1] - c2[1], 2) + Math.pow(c1[2] - c2[2], 2));
     }
 
-    // Robust heading correction (drop into your class). targetHeadingRad is radians.
-    private void headingCorrect(double targetHeadingRad) {
-        final double kP = 1.3;
-        final double yawTolRad = Math.toRadians(1.0);  // stop within ~1 degree
-        final double maxPower = 0.35;    // max wheel power used for rotation (tune)
-        final long timeoutMs = 5000;     // safety timeout in ms
-        long start = System.currentTimeMillis();
-
-        while (opModeIsActive()) {
-            if (System.currentTimeMillis() - start > timeoutMs) {
-                telemetry.addData("headingCorrect", "timeout");
-                break;
-            }
-
-            // update odometry
-            odo.update();
-            Pose2D pos = odo.getPosition();
-            double currYaw = pos.getHeading(AngleUnit.RADIANS);
-
-            // shortest angular error: target - current normalized to [-pi, pi]
-            double yawErr = Math.atan2(Math.sin(targetHeadingRad - currYaw),
-                    Math.cos(targetHeadingRad - currYaw));
-
-            // stop condition
-            if (Math.abs(yawErr) <= yawTolRad) {
-                break;
-            }
-
-            // P controller -> wheel power (sign convention: positive yawErr => rotate positive)
-            double power = -kP * yawErr;
-            // clip and ensure minimum deadband
-            power = Math.max(-maxPower, Math.min(maxPower, power));
-
-            // If power is very small, push it to a minimum to overcome static friction
-            double minPower = 0.1;
-            if (Math.abs(power) > 0 && Math.abs(power) < minPower) {
-                power = Math.copySign(minPower, power);
-            }
-
-            telemetry.addData("target", Math.toDegrees(targetHeadingRad));
-            telemetry.addData("yaw", Math.toDegrees(currYaw));
-            telemetry.addData("error", Math.toDegrees(yawErr));
-            telemetry.update();
-
-            fL.setPower(power);
-            fR.setPower(-power);
-            bL.setPower(power);
-            bR.setPower(-power);
-
-            sleep(12);
-        }
-
-        // stop motors and clear flag
-        fL.setPower(0);
-        fR.setPower(0);
-        bL.setPower(0);
-        bR.setPower(0);
-        telemetry.addLine("headingCorrect done");
-        telemetry.addLine("AT is the best! - Jonah");
-        telemetry.update();
-    }
-
-    private void headingCorrect2(double targetHeadingRad) {
-        final double kP = 1.3;
-        final double yawTolRad = Math.toRadians(1.0);  // stop within ~1 degree
-        final double maxPower = 0.2;    // max wheel power used for rotation (tune)
-        final long timeoutMs = 5000;     // safety timeout in ms
-        long start = System.currentTimeMillis();
-
-        while (opModeIsActive()) {
-            if (System.currentTimeMillis() - start > timeoutMs) {
-                telemetry.addData("headingCorrect", "timeout");
-                break;
-            }
-
-            // update odometry
-            odo.update();
-            Pose2D pos = odo.getPosition();
-            double currYaw = pos.getHeading(AngleUnit.RADIANS);
-
-            // shortest angular error: target - current normalized to [-pi, pi]
-            double yawErr = Math.atan2(Math.sin(targetHeadingRad - currYaw),
-                    Math.cos(targetHeadingRad - currYaw));
-
-            // stop condition
-            if (Math.abs(yawErr) <= yawTolRad) {
-                break;
-            }
-
-            // P controller -> wheel power (sign convention: positive yawErr => rotate positive)
-            double power = -kP * yawErr;
-            // clip and ensure minimum deadband
-            power = Math.max(-maxPower, Math.min(maxPower, power));
-
-            // If power is very small, push it to a minimum to overcome static friction
-            double minPower = 0.1;
-            if (Math.abs(power) > 0 && Math.abs(power) < minPower) {
-                power = Math.copySign(minPower, power);
-            }
-
-            telemetry.addData("target", Math.toDegrees(targetHeadingRad));
-            telemetry.addData("yaw", Math.toDegrees(currYaw));
-            telemetry.addData("error", Math.toDegrees(yawErr));
-            telemetry.update();
-
-            fL.setPower(power);
-            fR.setPower(-power);
-            bL.setPower(power);
-            bR.setPower(-power);
-
-            sleep(12);
-        }
-
-        // stop motors and clear flag
-        fL.setPower(0);
-        fR.setPower(0);
-        bL.setPower(0);
-        bR.setPower(0);
-        telemetry.addLine("headingCorrect done");
-        telemetry.addLine("AT is the best! - Jonah");
-        telemetry.update();
-    }
-
     public void driveRelativeX(double inches) {
         // Update odometry to get starting pose
         odo.update();
@@ -648,26 +554,37 @@ public class AutoBlueClose extends LinearOpMode {
     }
 
     private void fwOn(){
-        double leftVelocity  = fwl.getVelocity();
+        //limelight stuff
+        limelight.updateRobotOrientation(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
+        LLResult llResult = limelight.getLatestResult();
+        if (llResult != null && llResult.isValid()){
+            Pose3D botpose = llResult.getBotpose();
+            double camX  = -botpose.getPosition().x;
+            double camY  = botpose.getPosition().y;
+            double distance = Math.sqrt(Math.pow((mtBlueX-camX), 2) + Math.pow((mtBlueY-camY),2));
+            targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
+            targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
+            telemetry.addData("Distance", distance);
+            telemetry.addData("Target velocity", targetVelocity);
+        } else {
+            telemetry.addLine("No result");
+        }
+
+        double leftVelocity = fwl.getVelocity();
         double rightVelocity = fwr.getVelocity();
+        telemetry.addData("Left velocity", leftVelocity);
+        telemetry.addData("Right velocity", rightVelocity);
         double avgVelocity = (leftVelocity + rightVelocity) / 2.0;
 
+        pid.setSetpoint(targetVelocity);
         double pidOutput = pid.update(avgVelocity);
         // Feedforward based on max motor velocity
-        double feedforward = autoCloseFwSpeed / MAX_VELOCITY;
+        double feedforward = targetVelocity / MAX_VELOCITY;
         pidOutput += feedforward;
-
-        // Clip to [0,1]
         pidOutput = Math.max(0, Math.min(pidOutput, 1));
+
         fwl.setPower(pidOutput);
         fwr.setPower(pidOutput);
-//        odo.update();
-//        Pose2D pos = odo.getPosition();
-//
-//        telemetry.addData("slot 0", slotColors[0]);
-//        telemetry.addData("slot 1", slotColors[1]);
-//        telemetry.addData("slot 2", slotColors[2]);
-//        telemetry.update();
     }
 
     private void fwOff(){
