@@ -91,8 +91,8 @@ public class AutoBlueClose extends LinearOpMode {
     double targetVelocity = 500;
     double lastError = 0;
     // Safety Limits (Degrees)
-    private static final double MAX_TURRET_ANGLE = 180;
-    private static final double MIN_TURRET_ANGLE = -180;
+    private static final double MAX_TURRET_ANGLE = 170;
+    private static final double MIN_TURRET_ANGLE = -170;
 
     //    FLYWHEEL
     PIDController pid = new PIDController(0.041, 0.0, 0.0);
@@ -203,6 +203,10 @@ public class AutoBlueClose extends LinearOpMode {
         waitForStart();
         pid.setSetpoint(autoCloseFwSpeed);
         grant.setPosition(0.02);
+        new Thread(()->{
+            sleep(2000);
+            needPattern = false;
+        }).start();
         new Thread(()->{
             while (opModeIsActive()){
                 fwOn();
@@ -530,7 +534,7 @@ public class AutoBlueClose extends LinearOpMode {
                     bL.setPower(0);
                     bR.setPower(0);
                     grant.setPosition(0.5);
-                    sleep(300);
+                    sleep(500);
                     grant.setPosition(0.02);
                     sleep(100);
                 }).start();
@@ -543,7 +547,7 @@ public class AutoBlueClose extends LinearOpMode {
             if (Math.abs(error) < 0.2) {
                 break;
             }
-            double power = -0.2*Math.signum(error);   // apply sign
+            double power = -0.28*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);

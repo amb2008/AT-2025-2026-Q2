@@ -188,6 +188,19 @@ public class TeleopSupers extends LinearOpMode {
         while (opModeIsActive()) {
 //            fwl.setVelocity(fwCurrSpeed);
 //            fwr.setVelocity(fwCurrSpeed);
+            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty")){
+                new Thread(()-> {
+                    fL.setPower(0);
+                    fR.setPower(0);
+                    bL.setPower(0);
+                    bR.setPower(0);
+                    grant.setPosition(0.5);
+                    sleep(500);
+                    grant.setPosition(0.02);
+                    sleep(100);
+                    telemetry.addLine("Granted");
+                }).start();
+            }
             if (!fwoff){
                 fwOn();
             }

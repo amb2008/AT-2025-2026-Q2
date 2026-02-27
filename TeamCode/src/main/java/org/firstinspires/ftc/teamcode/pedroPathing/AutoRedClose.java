@@ -57,6 +57,7 @@ public class AutoRedClose extends LinearOpMode {
     private Servo flick1 = null;
     private Servo flick2 = null;
     private Servo flick3 = null;
+    private Servo grant = null;
     private CRServo turret = null;
     private Limelight3A limelight;
     private ColorSensor cs1a;
@@ -83,7 +84,7 @@ public class AutoRedClose extends LinearOpMode {
     private double lastVoltage = 0;
     private int rotationCount = 0;
     private double turretPower = 0.95;
-    private double targetTagID = 20;
+    private double targetTagID = 24;
     private double lastDirection = 1;
     double lastError = 0;
     // Safety Limits (Degrees)
@@ -91,7 +92,7 @@ public class AutoRedClose extends LinearOpMode {
     private static final double MIN_TURRET_ANGLE = -180;
 
     //    FLYWHEEL
-    PIDController pid = new PIDController(0.0115, 0.0, 0.0);
+    PIDController pid = new PIDController(0.041, 0.0, 0.0);
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
@@ -149,6 +150,7 @@ public class AutoRedClose extends LinearOpMode {
         flick1 = hardwareMap.get(Servo.class, "flick1");
         flick2 = hardwareMap.get(Servo.class, "flick2");
         flick3 = hardwareMap.get(Servo.class, "flick3");
+        grant = hardwareMap.get(Servo.class, "grant");
         turret = hardwareMap.get(CRServo.class, "turret");
         axonEncoder = hardwareMap.get(AnalogInput.class, "encoder");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -190,18 +192,15 @@ public class AutoRedClose extends LinearOpMode {
         waitForStart();
         pid.setSetpoint(autoCloseFwSpeed);
         new Thread(()->{
+            sleep(2000);
+            needPattern = false;
+        }).start();
+
+        new Thread(()->{
             while (opModeIsActive()){
                 fwOn();
             }
         }).start();
-
-        while (opModeIsActive() && needPattern){
-            checkPattern();
-            new Thread(()->{
-                sleep(500);
-                needPattern = false;
-            }).start();
-        }
 
         new Thread(()->{
             while (opModeIsActive()){
@@ -283,45 +282,49 @@ public class AutoRedClose extends LinearOpMode {
     private void outtake() {
         if (!outtaking) {
             outtaking = true;
-            checkColor();
-            List<Integer> servoSequence = new ArrayList<>();
-            boolean[] used = new boolean[slotColors.length];
+            double counter = 0;
             for (String targetColor : pattern) {
-                for (int i = 0; i < slotColors.length; i++) {
-                    if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-                        servoSequence.add(i);  // add servo position corresponding to that slot
-                        used[i] = true;                // mark slot as used
-                        break;                         // move on to next pattern color
+                counter += 1;
+                boolean launched = false;
+                checkColor();
+                for (int i = 0; i < slotColors.length; i++){
+                    if (slotColors[i].equalsIgnoreCase(targetColor)){
+                        if (i==0){
+                            flick1.setPosition(flicksUp[0]);
+                        } else if (i==1){
+                            flick2.setPosition(flicksUp[1]);
+                        } else if (i==2){
+                            flick3.setPosition(flicksUp[2]);
+                        }
+                        launched = true;
+                        break;
                     }
                 }
-            }
-            for (int i = 0; i < slotColors.length; i++) {
-                if (!used[i]) {
-                    servoSequence.add(i);
-                    used[i] = true;
-                }
-            }
-
-            for (int i = 0; i < servoSequence.size(); i++) {
-                if (outtaking) {
-                    if (servoSequence.get(i)==0){
-                        flick1.setPosition(flicksUp[0]);
-                    } else if (servoSequence.get(i)==1){
-                        flick2.setPosition(flicksUp[1]);
-                    } else if (servoSequence.get(i)==2){
-                        flick3.setPosition(flicksUp[2]);
+                if (!launched){
+                    for (int i = 0; i < slotColors.length; i++){
+                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")){
+                            if (i==0){
+                                flick1.setPosition(flicksUp[0]);
+                            } else if (i==1){
+                                flick2.setPosition(flicksUp[1]);
+                            } else if (i==2){
+                                flick3.setPosition(flicksUp[2]);
+                            }
+                            launched = true;
+                            break;
+                        }
                     }
-
-                    sleep(500);
+                }
+                if (launched){
+                    sleep(800);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
-                    sleep(500);
+                    if (counter<3){
+                        sleep(400);
+                    }
                 }
             }
-            slotColors[0] = "Empty";
-            slotColors[1] = "Empty";
-            slotColors[2] = "Empty";
             outtaking = false;
         }
     }
@@ -420,6 +423,9 @@ public class AutoRedClose extends LinearOpMode {
             } else {
                 turret.setPower(0);
             }
+        }
+        if (needPattern){
+            checkPattern();
         }
     }
 
@@ -619,26 +625,39 @@ public class AutoRedClose extends LinearOpMode {
     }
 
     public void driveRelativeX(double inches) {
-        // Update odometry to get starting pose
         odo.update();
         double startX = odo.getPosition().getX(DistanceUnit.INCH);   // inches
         double targetX = startX + inches;
         // Loop until we reach target or timeout
-        while (opModeIsActive()) {
-            odo.update();
-            double currentX = odo.getPosition().getX(DistanceUnit.INCH);
-            double error = targetX - currentX;
+        while (opModeIsActive() && !intakeDone) {
+            checkColor();
+            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty")){
+                new Thread(()-> {
+                    fL.setPower(0);
+                    fR.setPower(0);
+                    bL.setPower(0);
+                    bR.setPower(0);
+                    grant.setPosition(0.5);
+                    sleep(500);
+                    grant.setPosition(0.02);
+                    sleep(100);
+                }).start();
+            } else {
+                odo.update();
+                double currentX = odo.getPosition().getX(DistanceUnit.INCH);
+                double error = targetX - currentX;
 
-            // Stop when close enough
-            if (Math.abs(error) < 0.2) {
-                break;
+                // Stop when close enough
+                if (Math.abs(error) < 0.2) {
+                    break;
+                }
+                double power = -0.28*Math.signum(error);   // apply sign
+                // Mecanum pure strafe
+                fL.setPower(power);
+                fR.setPower(power);
+                bL.setPower(power);
+                bR.setPower(power);
             }
-            double power = -0.3*Math.signum(error);   // apply sign
-            // Mecanum pure strafe
-            fL.setPower(power);
-            fR.setPower(power);
-            bL.setPower(power);
-            bR.setPower(power);
         }
 
         // Stop the robot
