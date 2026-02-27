@@ -69,6 +69,7 @@ public class TeleopSupers extends LinearOpMode {
     private Servo flick1 = null;
     private Servo flick2 = null;
     private Servo flick3 = null;
+    private Servo grant = null;
     private CRServo turret = null;
     private Limelight3A limelight;
     private ColorSensor cs1a;
@@ -107,11 +108,11 @@ public class TeleopSupers extends LinearOpMode {
     private double lastVoltage = 0;
     private int rotationCount = 0;
     // Safety Limits (Degrees)
-    private static final double MAX_TURRET_ANGLE = 180;
-    private static final double MIN_TURRET_ANGLE = -180;
+    private static final double MAX_TURRET_ANGLE = 145;
+    private static final double MIN_TURRET_ANGLE = -145;
 //    FLYWHEEL
     private IMU imu;
-    PIDController pid = new PIDController(0.043, 0.0, 0.0);
+    PIDController pid = new PIDController(0.041, 0.0, 0.0);
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
@@ -138,6 +139,7 @@ public class TeleopSupers extends LinearOpMode {
         flick1 = hardwareMap.get(Servo.class, "flick1");
         flick2 = hardwareMap.get(Servo.class, "flick2");
         flick3 = hardwareMap.get(Servo.class, "flick3");
+        grant = hardwareMap.get(Servo.class, "grant");
         turret = hardwareMap.get(CRServo.class, "turret");
         axonEncoder = hardwareMap.get(AnalogInput.class, "encoder");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -192,6 +194,7 @@ public class TeleopSupers extends LinearOpMode {
             moveTurret();
             if (!wackSet){
                 wackSet = true;
+                grant.setPosition(0.02);
                 flick1.setPosition(flicksDown[0]);
                 flick2.setPosition(flicksDown[1]);
                 flick3.setPosition(flicksDown[2]);
@@ -251,42 +254,68 @@ public class TeleopSupers extends LinearOpMode {
 
             if (gamepad1.a && !aWasPressed){
                 aWasPressed = true;
-                if (!up){
+                new Thread(()->{
+                    flick1.setPosition(0.75);
+                    sleep(500);
                     flick1.setPosition(flicksDown[0]);
-                    up=true;
-                } else {
-                    up = false;
-                    flick1.setPosition(flicksUp[0]);
-                }
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+
+                    flick2.setPosition(0.62);
+                    sleep(500);
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+
+                    flick3.setPosition(0.75);
+                    sleep(500);
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+                }).start();
             }
 
             if (gamepad1.b && !aWasPressed){
                 aWasPressed = true;
-                if (!up){
+                new Thread(()->{
+                    flick3.setPosition(0.75);
+                    sleep(500);
+                    flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
-                    up=true;
-                } else {
-                    up = false;
-                    flick2.setPosition(flicksUp[1]);
-                }
+                    flick3.setPosition(flicksDown[2]);
+                    sleep(300);
+
+                    flick1.setPosition(0.75);
+                    sleep(500);
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+                    sleep(300);
+
+                    flick2.setPosition(0.62);
+                    sleep(500);
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+                    sleep(300);
+                }).start();
             }
 
             if (gamepad1.x && !aWasPressed){
                 aWasPressed = true;
-                if (!up){
-                    flick3.setPosition(flicksDown[2]);
-                    up=true;
-                } else {
-                    up = false;
-                    flick3.setPosition(flicksUp[2]);
-                }
+                new Thread(()-> {
+                    grant.setPosition(0.5);
+                    sleep(300);
+                    grant.setPosition(0.02);
+                }).start();
             }
 
             if (!gamepad1.a && !gamepad1.b && !gamepad1.x){
                 aWasPressed = false;
             }
-            telemetry.addData("Pressed", aWasPressed);
-            telemetry.addData("Up", up);
+            telemetry.addData("Flick 1 Pos", flick1.getPosition());
+            telemetry.addData("Flick 2 Pos", flick2.getPosition());
+            telemetry.addData("Flick 3 Pos", flick3.getPosition());
 
             checkColor();
             telemetry.addData("Slot 1", slotColors[0]);
@@ -472,7 +501,7 @@ public class TeleopSupers extends LinearOpMode {
                     }
                 }
                 if (launched){
-                    sleep(900);
+                    sleep(1200);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
@@ -482,11 +511,11 @@ public class TeleopSupers extends LinearOpMode {
                 if (counter<3){
                     sleep(400);
                 }
-                if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
-                    outtaking = false;
-                    outtake(outPattern);
-                    telemetry.addLine("Outtaking again!");
-                }
+//                if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
+//                    outtaking = false;
+//                    outtake(outPattern);
+//                    telemetry.addLine("Outtaking again!");
+//                }
             }
             outtaking = false;
         }

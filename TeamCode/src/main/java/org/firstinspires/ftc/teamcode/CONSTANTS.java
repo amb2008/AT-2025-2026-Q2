@@ -9,7 +9,7 @@ public class CONSTANTS {
     public static final double autoFwSpeed = 1120;
     public static final double autoFwSpeed2 = 1120;
     public static final double autoCloseFwSpeed = 870;
-    public static final double intakeSpeed = 0.9;
+    public static final double intakeSpeed = 0.98;
     public static final double dpadSpeed = 0.4;
     public static final double wackUp = 0.48;
     public static final double wackDown = 0.23;
@@ -32,7 +32,7 @@ public class CONSTANTS {
     //    static final double[] suzano = {0.67, 1, 0.3};
 //    Let third one be mirrored
     public static final double[] suzano = {0.75, 0.01, 0.38};
-    public static final double[] flicksDown = {0.84, 0.51, 0.84};
+    public static final double[] flicksDown = {0.85, 0.5, 0.85};
     public static final double[] flicksUp = {0.52, 0.83, 0.53};
     //    0.74  0.36  0
 //    0.16  0.53  0.91
