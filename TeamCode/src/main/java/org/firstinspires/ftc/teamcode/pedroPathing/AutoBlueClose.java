@@ -41,9 +41,9 @@ public class AutoBlueClose extends LinearOpMode {
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
     private final Pose scorePose = new Pose(59, 94, Math.toRadians(185));
     private final Pose scorePose2 = new Pose(51, 91, Math.toRadians(185));
-    private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(186));
-    private final Pose pickup2Pose = new Pose(50, 70, Math.toRadians(185));
-    private final Pose pickup3Pose = new Pose(49, 46, Math.toRadians(185));
+    private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(185));
+    private final Pose pickup2Pose = new Pose(50, 72, Math.toRadians(185));
+    private final Pose pickup3Pose = new Pose(50, 46, Math.toRadians(185));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
@@ -79,6 +79,8 @@ public class AutoBlueClose extends LinearOpMode {
     private boolean wackSet = false;
     private double count = 0;
     private boolean intakeDone = false;
+
+    boolean shooting = false;
     //        AXON ENCODER TRACKING
     private AnalogInput axonEncoder;
     private static final double MAX_VOLTAGE = 3.3; // Check your specific hub, usually 3.3V
@@ -87,12 +89,12 @@ public class AutoBlueClose extends LinearOpMode {
     private int rotationCount = 0;
     private double turretPower = 0.95;
     private double targetTagID = 20;
-    private double lastDirection = 1;
+    private double lastDirection = 1; //move to right at start
     double targetVelocity = 500;
     double lastError = 0;
     // Safety Limits (Degrees)
-    private static final double MAX_TURRET_ANGLE = 170;
-    private static final double MIN_TURRET_ANGLE = -170;
+    private static final double MAX_TURRET_ANGLE = 165;
+    private static final double MIN_TURRET_ANGLE = -165;
 
     //    FLYWHEEL
     PIDController pid = new PIDController(0.041, 0.0, 0.0);
@@ -219,7 +221,7 @@ public class AutoBlueClose extends LinearOpMode {
             }
         }).start();
 
-        // --------- STEP 1: SCORE PRELOAD ----------
+//         --------- STEP 1: SCORE PRELOAD ----------
         follower.followPath(scorePreload);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
@@ -235,7 +237,7 @@ public class AutoBlueClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
-        intakeMacro();
+        intakeMacroClose();
         // --------- STEP 3: SCORE PICKUP 1 ----------
         follower.followPath(scorePickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -255,7 +257,7 @@ public class AutoBlueClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
-        intakeMacro();
+        intakeMacroFar();
 
         // --------- STEP 5: SCORE PICKUP 2 ----------
         follower.followPath(scorePickup2, true);
@@ -277,7 +279,7 @@ public class AutoBlueClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
-        intakeMacro();
+        intakeMacroFar();
 
         // --------- STEP 7: SCORE PICKUP 3 ----------
         follower.followPath(scorePickup3, true);
@@ -293,7 +295,14 @@ public class AutoBlueClose extends LinearOpMode {
 
     private void outtake() {
         if (!outtaking) {
+                if (limelight.getLatestResult() == null){
+                    while (limelight.getLatestResult() == null){
+
+                    }
+                    sleep(500);
+                }
             outtaking = true;
+            shooting = true;
             double counter = 0;
             for (String targetColor : pattern) {
                 counter += 1;
@@ -328,6 +337,25 @@ public class AutoBlueClose extends LinearOpMode {
                     }
                 }
                 if (launched){
+
+                    sleep(800);
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+                    for (int i = 0; i < slotColors.length; i++){
+                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")) {
+                            if (i==0){
+                                flick1.setPosition(flicksUp[0]);
+                            } else if (i==1){
+                                flick2.setPosition(flicksUp[1]);
+                            } else if (i==2){
+                                flick3.setPosition(flicksUp[2]);
+                            }
+                            break;
+
+                        }
+
+                    }
                     sleep(800);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
@@ -338,6 +366,7 @@ public class AutoBlueClose extends LinearOpMode {
                 }
             }
             outtaking = false;
+            shooting = false;
         }
     }
 
@@ -441,7 +470,21 @@ public class AutoBlueClose extends LinearOpMode {
         }
     }
 
-    private void intakeMacro(){
+    private void intakeMacroClose(){
+        intakeDone = false;
+        new Thread(()->{
+            while (!intakeDone){
+                intake();
+            }
+            intake1.setPower(0);
+        }).start();
+        new Thread(()->{
+            sleep(5000);
+            intakeDone = true;
+        }).start();
+        driveRelativeX(-18);
+    }
+    private void intakeMacroFar(){
         intakeDone = false;
         new Thread(()->{
             while (!intakeDone){
@@ -460,6 +503,14 @@ public class AutoBlueClose extends LinearOpMode {
         intake1.setDirection(DcMotor.Direction.FORWARD);
         intake1.setPower(intakeSpeed);
     }
+
+//    private boolean isIntakeFull() {
+//        checkColor();
+//        // Returns true only if all three slots are filled (not "Empty")
+//        return !slotColors[0].equalsIgnoreCase("Empty") &&
+//                !slotColors[1].equalsIgnoreCase("Empty") &&
+//                !slotColors[2].equalsIgnoreCase("Empty");
+//    }
 
     private void checkColor() {
         double tolerance = 0.07;
@@ -527,7 +578,8 @@ public class AutoBlueClose extends LinearOpMode {
         // Loop until we reach target or timeout
         while (opModeIsActive() && !intakeDone) {
             checkColor();
-            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty")){
+
+            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !shooting){
                 new Thread(()-> {
                     fL.setPower(0);
                     fR.setPower(0);
@@ -573,6 +625,7 @@ public class AutoBlueClose extends LinearOpMode {
             double camY  = botpose.getPosition().y;
             double distance = Math.sqrt(Math.pow((mtBlueX-camX), 2) + Math.pow((mtBlueY-camY),2));
             targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
+            targetVelocity = targetVelocity * 1.05; //tweak if shooting to short or far
             targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
             telemetry.addData("Distance", distance);
             telemetry.addData("Target velocity", targetVelocity);

@@ -54,9 +54,9 @@ import java.util.ArrayList;
 import java.util.List;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-@TeleOp(name="Tele-Op - BLUE", group="Linear OpMode")
+@TeleOp(name="Tele-Op - RED", group="Linear OpMode")
 //@Disabled
-public class TeleopSupers extends LinearOpMode {
+public class TeleopSupers_Red extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor fL = null;
@@ -99,7 +99,7 @@ public class TeleopSupers extends LinearOpMode {
     private double lastPos = suzani[servoIndex];
     private double fwCurrSpeed = fwFarSpeed;
     private double turretPower = 0.95;
-    private double targetTagID = 20;
+    private double targetTagID = 24;
     private double lastDirection = 1;
 
     //        AXON ENCODER TRACKING
@@ -111,7 +111,7 @@ public class TeleopSupers extends LinearOpMode {
     // Safety Limits (Degrees)
     private static final double MAX_TURRET_ANGLE = 145;
     private static final double MIN_TURRET_ANGLE = -145;
-//    FLYWHEEL
+    //    FLYWHEEL
     private IMU imu;
     PIDController pid = new PIDController(0.041, 0.0, 0.0);
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
@@ -223,7 +223,7 @@ public class TeleopSupers extends LinearOpMode {
                 fwCurrSpeed = fwFarSpeed;
                 fwoff = false;
             } else if (gamepad2.dpad_down) {
-               fwOff();
+                fwOff();
 
             }
             if (gamepad1.y){
@@ -598,7 +598,7 @@ public class TeleopSupers extends LinearOpMode {
             Pose3D botpose = llResult.getBotpose();
             double camX  = -botpose.getPosition().x;
             double camY  = botpose.getPosition().y;
-            double distance = Math.sqrt(Math.pow((mtBlueX-camX), 2) + Math.pow((mtBlueY-camY),2));
+            double distance = Math.sqrt(Math.pow((mtRedX-camX), 2) + Math.pow((mtRedY-camY),2));
             targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
             targetVelocity = targetVelocity * 1.05; //tweak if shooting to short or far
             targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
