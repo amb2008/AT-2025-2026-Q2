@@ -98,9 +98,14 @@ public class TeleopSupers_Red extends LinearOpMode {
     private boolean xWasPressed = false;
     private double lastPos = suzani[servoIndex];
     private double fwCurrSpeed = fwFarSpeed;
+//    TURRET
     private double turretPower = 0.95;
     private double targetTagID = 24;
     private double lastDirection = 1;
+    private double lastTurretAngle = 0;
+    private double stuckTimer = 0;
+    private static final double STUCK_ANGLE_THRESHOLD = 0.5;   // degrees
+    private static final double STUCK_TIME_THRESHOLD = 0.3;    // seconds
 
     //        AXON ENCODER TRACKING
     private AnalogInput axonEncoder;
@@ -422,6 +427,22 @@ public class TeleopSupers_Red extends LinearOpMode {
             }
             turretPower = 0.99*lastDirection;
             turret.setPower(turretPower);
+            // ---------------- STUCK DETECTION ----------------
+            double angleChange = Math.abs(turretAngle - lastTurretAngle);
+
+            if (angleChange < STUCK_ANGLE_THRESHOLD) {
+                stuckTimer += timer.seconds();
+            } else {
+                stuckTimer = 0;
+            }
+
+            if (stuckTimer > STUCK_TIME_THRESHOLD) {
+                lastDirection *= -1;   // reverse direction
+                stuckTimer = 0;        // reset timer
+            }
+            lastTurretAngle = turretAngle;
+            timer.reset();
+            // ---
             telemetry.addData("Last direction", lastDirection);
             telemetry.addLine("SWEEPING");
         }
