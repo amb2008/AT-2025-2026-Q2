@@ -5,6 +5,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import java.util.Objects;
+
 @TeleOp(name = "Grant Popick Flicker Tuning", group = "Debug")
 //@Disabled
 public class GrantFlickerTesting extends LinearOpMode {
@@ -13,7 +15,8 @@ public class GrantFlickerTesting extends LinearOpMode {
     private Servo flick3 = null;
     private boolean wackSet = false;
     private boolean aWasPressed = false;
-    private boolean up = false;
+    private long sleep1 = 500;
+    private long sleep2 = 500;
 
     @Override
     public void runOpMode() {
@@ -31,46 +34,82 @@ public class GrantFlickerTesting extends LinearOpMode {
                 flick3.setPosition(flicksDown[2]);
             }
 
-            if (gamepad2.a && !aWasPressed){
+            if (gamepad1.y && !aWasPressed) {
                 aWasPressed = true;
-                if (!up){
-                    flick1.setPosition(flicksDown[0]);
-                    up=true;
-                } else {
-                    up = false;
-                    flick1.setPosition(flicksUp[0]);
-                }
+                new Thread(()->{
+                    Servo[] outPattern = {flick1, flick2, flick3};
+                    outtake(outPattern);
+                }).start();
+            }
+            if (gamepad1.b && !aWasPressed) {
+                aWasPressed = true;
+                new Thread(()->{
+                    Servo[] outPattern = {flick2, flick1, flick3};
+                    outtake(outPattern);
+                }).start();
+            }
+            if (gamepad1.a && !aWasPressed) {
+                aWasPressed = true;
+                new Thread(()->{
+                    Servo[] outPattern = {flick3, flick2, flick1};
+                    outtake(outPattern);
+                }).start();
             }
 
-            if (gamepad2.b && !aWasPressed){
+            if (gamepad1.right_trigger > 0.1 && !aWasPressed){
                 aWasPressed = true;
-                if (!up){
-                    flick2.setPosition(flicksDown[1]);
-                    up=true;
-                } else {
-                    up = false;
-                    flick2.setPosition(flicksUp[1]);
-                }
+                sleep1 += 20;
             }
 
-            if (gamepad2.x && !aWasPressed){
+            if (gamepad1.left_trigger > 0.1 && !aWasPressed){
                 aWasPressed = true;
-                if (!up){
-                    flick3.setPosition(flicksDown[2]);
-                    up=true;
-                } else {
-                    up = false;
-                    flick3.setPosition(flicksUp[2]);
-                }
+                sleep1 -= 20;
             }
-            if (!gamepad2.a && !gamepad2.b && !gamepad2.x){
+
+            if (gamepad1.right_bumper && !aWasPressed){
+                aWasPressed = true;
+                sleep2 += 20;
+            }
+
+            if (gamepad1.left_bumper && !aWasPressed){
+                aWasPressed = true;
+                sleep2 -= 20;
+            }
+
+
+            if (!gamepad1.a && !gamepad1.b && !gamepad1.x && !(gamepad1.right_trigger > 0.1) && !(gamepad1.left_trigger > 0.1) && !gamepad1.left_bumper && !gamepad1.right_bumper){
                 aWasPressed = false;
             }
 
 
             telemetry.addLine("\n=== Controls ===");
-            telemetry.addLine("Gamepad 1 AXY: Flickers");
+            telemetry.addLine("Gamepad 1 ABY: All three flickers in different orders");
+            telemetry.addLine("Gamepad 1 Triggers adjust sleep 1 (sleep between flick set up and flick set down)");
+            telemetry.addLine("Gamepad 1 Bumpers adjust sleep 2 (sleep between flick set down and next flick set up)");
+            telemetry.addData("Sleep 1", sleep1);
+            telemetry.addData("Sleep 2", sleep2);
             telemetry.update();
+        }
+    }
+
+    private void outtake(Servo[] outPattern) {
+        double counter = 0;
+        for (Servo targetServo : outPattern) {
+            if (counter>0){
+                sleep(sleep2);
+            }
+            counter += 1;
+            if (targetServo == flick1){
+                targetServo.setPosition(flicksUp[0]);
+            } else if (targetServo == flick2){
+                targetServo.setPosition(flicksUp[1]);
+            } else if (targetServo == flick3){
+                targetServo.setPosition(flicksUp[2]);
+            }
+            sleep(sleep1);
+            flick1.setPosition(flicksDown[0]);
+            flick2.setPosition(flicksDown[1]);
+            flick3.setPosition(flicksDown[2]);
         }
     }
 }

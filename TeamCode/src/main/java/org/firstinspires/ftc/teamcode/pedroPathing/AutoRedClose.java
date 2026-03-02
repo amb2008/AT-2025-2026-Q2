@@ -96,6 +96,7 @@ public class AutoRedClose extends LinearOpMode {
     // Safety Limits (Degrees)
     private static final double MAX_TURRET_ANGLE = 170;
     private static final double MIN_TURRET_ANGLE = -170;
+    private boolean  sweep = true;
 
     //    FLYWHEEL
     PIDController pid = new PIDController(0.041, 0.0, 0.0);
@@ -218,7 +219,9 @@ public class AutoRedClose extends LinearOpMode {
 
         new Thread(()->{
             while (opModeIsActive()){
-                moveTurret();
+                if (sweep) {
+                    moveTurret();
+                }
             }
         }).start();
 
@@ -229,6 +232,7 @@ public class AutoRedClose extends LinearOpMode {
         }
         sleep(2000);
         outtake();
+        sweep = false;
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -249,7 +253,9 @@ public class AutoRedClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
+        sweep = true;
         outtake();
+        sweep = false;
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -270,8 +276,9 @@ public class AutoRedClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
+        sweep = true;
         outtake();
-
+        sweep = false;
         // --------- STEP 6: GRAB PICKUP 3 ----------
         follower.followPath(grabPickup3, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -292,7 +299,9 @@ public class AutoRedClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
+        sweep = true;
         outtake();
+        sweep = false;
     }
 
     private void outtake() {

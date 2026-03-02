@@ -38,7 +38,7 @@ public class FlywheelPIDTesting extends LinearOpMode {
     private IMU imu;
 
     // Single PID controller for both motors
-    PIDController pid = new PIDController(0.043, 0.0, 0.0);
+    PIDController pid = new PIDController(0.041, 0.0, 0.0);
 
     // Target velocity (ticks/sec)
     double targetVelocity = 600;

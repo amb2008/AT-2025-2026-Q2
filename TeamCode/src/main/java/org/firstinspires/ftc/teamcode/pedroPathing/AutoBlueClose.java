@@ -74,6 +74,7 @@ public class AutoBlueClose extends LinearOpMode {
     private String[] pattern = {"purple", "purple", "green"};
     private boolean sweepingForward = true;
     private boolean intakeReady = true;
+    private boolean sweep = true;
     private boolean needPattern = true;
     private boolean outtaking = false;
     private boolean wackSet = false;
@@ -217,7 +218,9 @@ public class AutoBlueClose extends LinearOpMode {
 
         new Thread(()->{
             while (opModeIsActive()){
-                moveTurret();
+                if (sweep) {
+                    moveTurret();
+                }
             }
         }).start();
 
@@ -227,6 +230,7 @@ public class AutoBlueClose extends LinearOpMode {
             follower.update();
         }
         outtake();
+        sweep = false;
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -247,7 +251,9 @@ public class AutoBlueClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
+        sweep = true;
         outtake();
+        sweep = false;
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -268,7 +274,9 @@ public class AutoBlueClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
+        sweep = true;
         outtake();
+        sweep = false;
 
         // --------- STEP 6: GRAB PICKUP 3 ----------
         follower.followPath(grabPickup3, true);
@@ -290,7 +298,9 @@ public class AutoBlueClose extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
+        sweep = true;
         outtake();
+        sweep = false;
     }
 
     private void outtake() {

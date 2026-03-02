@@ -187,8 +187,6 @@ public class TeleopSupers extends LinearOpMode {
         runtime.reset();
 
         while (opModeIsActive()) {
-//            fwl.setVelocity(fwCurrSpeed);
-//            fwr.setVelocity(fwCurrSpeed);
             if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !outtaking){
                 new Thread(()-> {
                     fL.setPower(0);
@@ -514,11 +512,6 @@ public class TeleopSupers extends LinearOpMode {
                 if (counter<3){
                     sleep(400);
                 }
-//                if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
-//                    outtaking = false;
-//                    outtake(outPattern);
-//                    telemetry.addLine("Outtaking again!");
-//                }
             }
             outtaking = false;
         }
