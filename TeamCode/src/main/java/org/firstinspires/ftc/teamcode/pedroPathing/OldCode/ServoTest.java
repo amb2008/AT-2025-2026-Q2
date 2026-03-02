@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @TeleOp(name = "Servo Test", group = "Tests")
-@Disabled
+//@Disabled
 public class ServoTest extends LinearOpMode {
 
     // Assume a servo named "test_servo" is configured in the robot configuration
@@ -16,7 +16,7 @@ public class ServoTest extends LinearOpMode {
     @Override
     public void runOpMode() {
         // Initialize the servo
-        testServo = hardwareMap.get(Servo.class, "test_servo");
+        testServo = hardwareMap.get(Servo.class, "flick3");
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();

@@ -109,8 +109,8 @@ public class TeleopSupers_Red extends LinearOpMode {
     private double lastVoltage = 0;
     private int rotationCount = 0;
     // Safety Limits (Degrees)
-    private static final double MAX_TURRET_ANGLE = 145;
-    private static final double MIN_TURRET_ANGLE = -145;
+    private static final double MAX_TURRET_ANGLE = 135;
+    private static final double MIN_TURRET_ANGLE = -135;
     //    FLYWHEEL
     private IMU imu;
     PIDController pid = new PIDController(0.041, 0.0, 0.0);
@@ -204,6 +204,9 @@ public class TeleopSupers_Red extends LinearOpMode {
             }
             if (!fwoff){
                 fwOn();
+            } else {
+                fwr.setPower(-0.3);
+                fwl.setPower(-0.3);
             }
             moveTurret();
             if (!wackSet){
@@ -224,7 +227,8 @@ public class TeleopSupers_Red extends LinearOpMode {
                 fwoff = false;
             } else if (gamepad2.dpad_down) {
                 fwOff();
-
+            } else if (gamepad2.dpad_up) {
+                fwoff = false;
             }
             if (gamepad1.y){
                 slotColors[0] = "Empty";
@@ -269,19 +273,7 @@ public class TeleopSupers_Red extends LinearOpMode {
             if (gamepad1.a && !aWasPressed){
                 aWasPressed = true;
                 new Thread(()->{
-                    flick1.setPosition(0.75);
-                    sleep(500);
-                    flick1.setPosition(flicksDown[0]);
-                    flick2.setPosition(flicksDown[1]);
-                    flick3.setPosition(flicksDown[2]);
-
-                    flick2.setPosition(0.62);
-                    sleep(500);
-                    flick1.setPosition(flicksDown[0]);
-                    flick2.setPosition(flicksDown[1]);
-                    flick3.setPosition(flicksDown[2]);
-
-                    flick3.setPosition(0.75);
+                    flick1.setPosition(flicksUp[0]);
                     sleep(500);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
@@ -292,26 +284,22 @@ public class TeleopSupers_Red extends LinearOpMode {
             if (gamepad1.b && !aWasPressed){
                 aWasPressed = true;
                 new Thread(()->{
-                    flick3.setPosition(0.75);
+                    flick3.setPosition(flicksUp[2]);
                     sleep(500);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
-                    sleep(300);
+                }).start();
+            }
 
-                    flick1.setPosition(0.75);
+            if (gamepad1.y && !aWasPressed){
+                aWasPressed = true;
+                new Thread(()->{
+                    flick2.setPosition(flicksUp[1]);
                     sleep(500);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
-                    sleep(300);
-
-                    flick2.setPosition(0.62);
-                    sleep(500);
-                    flick1.setPosition(flicksDown[0]);
-                    flick2.setPosition(flicksDown[1]);
-                    flick3.setPosition(flicksDown[2]);
-                    sleep(300);
                 }).start();
             }
 
@@ -324,7 +312,7 @@ public class TeleopSupers_Red extends LinearOpMode {
                 }).start();
             }
 
-            if (!gamepad1.a && !gamepad1.b && !gamepad1.x){
+            if (!gamepad1.a && !gamepad1.b && !gamepad1.x && !gamepad1.y){
                 aWasPressed = false;
             }
             telemetry.addData("Flick 1 Pos", flick1.getPosition());

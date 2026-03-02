@@ -40,7 +40,7 @@ public class AutoBlueClose extends LinearOpMode {
     private Follower follower;
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
     private final Pose scorePose = new Pose(59, 94, Math.toRadians(185));
-    private final Pose scorePose2 = new Pose(51, 91, Math.toRadians(185));
+    private final Pose scorePose2 = new Pose(54, 91, Math.toRadians(185));
     private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(185));
     private final Pose pickup2Pose = new Pose(50, 72, Math.toRadians(185));
     private final Pose pickup3Pose = new Pose(50, 46, Math.toRadians(185));
