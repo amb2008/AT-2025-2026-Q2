@@ -192,8 +192,6 @@ public class TeleopSupers_Red extends LinearOpMode {
         runtime.reset();
 
         while (opModeIsActive()) {
-//            fwl.setVelocity(fwCurrSpeed);
-//            fwr.setVelocity(fwCurrSpeed);
             if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !outtaking){
                 new Thread(()-> {
                     fL.setPower(0);

@@ -3,6 +3,8 @@ import static org.firstinspires.ftc.teamcode.CONSTANTS.flicksDown;
 import static org.firstinspires.ftc.teamcode.CONSTANTS.flicksUp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import java.util.Objects;
@@ -17,12 +19,22 @@ public class GrantFlickerTesting extends LinearOpMode {
     private boolean aWasPressed = false;
     private long sleep1 = 500;
     private long sleep2 = 500;
+    private DcMotorEx fwl = null;
+    private DcMotorEx fwr = null;
+
 
     @Override
     public void runOpMode() {
         flick1 = hardwareMap.get(Servo.class, "flick1");
         flick2 = hardwareMap.get(Servo.class, "flick2");
         flick3 = hardwareMap.get(Servo.class, "flick3");
+        fwl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        fwr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        fwl = hardwareMap.get(DcMotorEx.class, "fwl");
+        fwr = hardwareMap.get(DcMotorEx.class, "fwr");
+        fwl.setDirection(DcMotor.Direction.REVERSE);
+        fwr.setDirection(DcMotor.Direction.FORWARD);
 
         waitForStart();
 
@@ -33,6 +45,9 @@ public class GrantFlickerTesting extends LinearOpMode {
                 flick2.setPosition(flicksDown[1]);
                 flick3.setPosition(flicksDown[2]);
             }
+
+            fwl.setPower(0.4);
+            fwr.setPower(0.4);
 
             if (gamepad1.y && !aWasPressed) {
                 aWasPressed = true;
