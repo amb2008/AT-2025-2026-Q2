@@ -41,8 +41,8 @@ public class AutoRedClose extends LinearOpMode {
     private final Pose startPose = new Pose(127, 124, Math.toRadians(210));
     private final Pose scorePose = new Pose(86, 96, Math.toRadians(352));
     private final Pose scorePose2 = new Pose(86, 96, Math.toRadians(352));
-    private final Pose pickup1Pose = new Pose(89, 90, Math.toRadians(352));
-    private final Pose pickup2Pose = new Pose(89, 67, Math.toRadians(352));
+    private final Pose pickup1Pose = new Pose(89, 93, Math.toRadians(352));
+    private final Pose pickup2Pose = new Pose(89, 73, Math.toRadians(352));
     private final Pose pickup3Pose = new Pose(94, 28, Math.toRadians(352));
 
     private Path scorePreload;
@@ -310,7 +310,7 @@ public class AutoRedClose extends LinearOpMode {
                 while (limelight.getLatestResult() == null){
 
                 }
-                sleep(1500);
+                sleep(500);
             }
             outtaking = true;
             shooting = true;
@@ -410,6 +410,7 @@ public class AutoRedClose extends LinearOpMode {
             telemetry.addData("Pattern 0", pattern[0]);
             telemetry.addData("Pattern 1", pattern[1]);
             telemetry.addData("Pattern 2", pattern[2]);
+            telemetry.update();
         } else {
             telemetry.addLine("No valid AprilTag detected");
         }
@@ -487,13 +488,14 @@ public class AutoRedClose extends LinearOpMode {
             while (!intakeDone){
                 intake();
             }
+            sleep(1000);
             intake1.setPower(0);
         }).start();
         new Thread(()->{
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-13);
+        driveRelativeX(-5);
     }
     private void intakeMacroFar(){
         intakeDone = false;
@@ -501,13 +503,14 @@ public class AutoRedClose extends LinearOpMode {
             while (!intakeDone){
                 intake();
             }
+            sleep(1000);
             intake1.setPower(0);
         }).start();
         new Thread(()->{
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-24);
+        driveRelativeX(-22);
     }
 
     private void intake() {
@@ -590,24 +593,26 @@ public class AutoRedClose extends LinearOpMode {
         while (opModeIsActive() && !intakeDone) {
             checkColor();
 
-            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !shooting){
-                new Thread(()-> {
-                    fL.setPower(0);
-                    fR.setPower(0);
-                    bL.setPower(0);
-                    bR.setPower(0);
-                    grant.setPosition(0.5);
-                    sleep(500);
-                    grant.setPosition(0.02);
-                    sleep(100);
-                }).start();
-            } else {
+//            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !shooting){
+//                new Thread(()-> {
+//                    fL.setPower(0);
+//                    fR.setPower(0);
+//                    bL.setPower(0);
+//                    bR.setPower(0);
+//                    grant.setPosition(0.5);
+//                    sleep(500);
+//                    grant.setPosition(0.02);
+//                    sleep(100);
+//                }).start();
+//            } else {
                 odo.update();
                 double currentX = odo.getPosition().getX(DistanceUnit.INCH);
                 double error = targetX - currentX;
 
                 // Stop when close enough
-                if (Math.abs(error) < 0.2) {
+                telemetry.addData("Current X", currentX);
+                telemetry.addData("Target X", targetX);
+                if (currentX<targetX) {
                     break;
                 }
                 double power = -0.28*Math.signum(error);   // apply sign
@@ -616,7 +621,7 @@ public class AutoRedClose extends LinearOpMode {
                 fR.setPower(power);
                 bL.setPower(power);
                 bR.setPower(power);
-            }
+//            }
         }
 
         // Stop the robot
@@ -648,6 +653,8 @@ public class AutoRedClose extends LinearOpMode {
         double rightVelocity = fwr.getVelocity();
         telemetry.addData("Left velocity", leftVelocity);
         telemetry.addData("Right velocity", rightVelocity);
+        telemetry.addLine(pattern[0] + " " + pattern[1] + " " + pattern[2]);
+        telemetry.update();
         double avgVelocity = (leftVelocity + rightVelocity) / 2.0;
 
         pid.setSetpoint(targetVelocity);

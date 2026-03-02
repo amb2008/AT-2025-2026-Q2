@@ -104,8 +104,8 @@ public class TeleopSupers extends LinearOpMode {
     private double lastDirection = 1;
     private double lastTurretAngle = 0;
     private double stuckTimer = 0;
-    private static final double STUCK_ANGLE_THRESHOLD = 0.5;   // degrees
-    private static final double STUCK_TIME_THRESHOLD = 0.3;    // seconds
+    private static final double STUCK_ANGLE_THRESHOLD = 1;   // degrees
+    private static final double STUCK_TIME_THRESHOLD = 0.2;    // seconds
 
     //        AXON ENCODER TRACKING
     private AnalogInput axonEncoder;
@@ -192,6 +192,8 @@ public class TeleopSupers extends LinearOpMode {
         runtime.reset();
 
         while (opModeIsActive()) {
+            telemetry.addLine("AT is the best!");
+            telemetry.update();
             if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !outtaking){
                 new Thread(()-> {
                     fL.setPower(0);
@@ -232,6 +234,7 @@ public class TeleopSupers extends LinearOpMode {
                fwOff();
             }
             else if (gamepad2.dpad_up) {
+                fwCurrSpeed = 100;
                 fwoff = false;
             }
             if (gamepad1.y){
@@ -443,9 +446,7 @@ public class TeleopSupers extends LinearOpMode {
             lastTurretAngle = turretAngle;
             timer.reset();
             // ---
-
-            telemetry.addData("Last direction", lastDirection);
-            telemetry.addLine("SWEEPING");
+            telemetry.addData("Angle", turretAngle);
         }
         else if (locked) {
             double error = tx;
@@ -525,7 +526,7 @@ public class TeleopSupers extends LinearOpMode {
                     }
                 }
                 if (launched){
-                    sleep(1200);
+                    sleep(300);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
@@ -533,7 +534,7 @@ public class TeleopSupers extends LinearOpMode {
 
                 checkColor();
                 if (counter<3){
-                    sleep(400);
+                    sleep(300);
                 }
             }
             outtaking = false;
