@@ -42,7 +42,7 @@ public class AutoBlueClose extends LinearOpMode {
     private final Pose scorePose = new Pose(59, 94, Math.toRadians(185));
     private final Pose scorePose2 = new Pose(54, 91, Math.toRadians(185));
     private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(185));
-    private final Pose pickup2Pose = new Pose(50, 70, Math.toRadians(185));
+    private final Pose pickup2Pose = new Pose(50, 72, Math.toRadians(185));
     private final Pose pickup3Pose = new Pose(50, 46, Math.toRadians(185));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
@@ -230,7 +230,6 @@ public class AutoBlueClose extends LinearOpMode {
             follower.update();
         }
         outtake();
-        outtake();
         sweep = false;
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
@@ -254,7 +253,6 @@ public class AutoBlueClose extends LinearOpMode {
         telemetry.update();
         sweep = true;
         outtake();
-        outtake();
         sweep = false;
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
@@ -277,7 +275,6 @@ public class AutoBlueClose extends LinearOpMode {
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
-        outtake();
         outtake();
         sweep = false;
 
@@ -308,12 +305,12 @@ public class AutoBlueClose extends LinearOpMode {
 
     private void outtake() {
         if (!outtaking) {
-            if (limelight.getLatestResult() == null){
-                while (limelight.getLatestResult() == null){
+                if (limelight.getLatestResult() == null){
+                    while (limelight.getLatestResult() == null){
 
+                    }
+                    sleep(500);
                 }
-                sleep(500);
-            }
             outtaking = true;
             shooting = true;
             double counter = 0;
@@ -351,7 +348,7 @@ public class AutoBlueClose extends LinearOpMode {
                 }
                 if (launched){
 
-                    sleep(400);
+                    sleep(800);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
@@ -369,6 +366,7 @@ public class AutoBlueClose extends LinearOpMode {
                         }
 
                     }
+                    sleep(800);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
@@ -488,14 +486,13 @@ public class AutoBlueClose extends LinearOpMode {
             while (!intakeDone){
                 intake();
             }
-            sleep(1000);
             intake1.setPower(0);
         }).start();
         new Thread(()->{
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-21);
+        driveRelativeX(-18);
     }
     private void intakeMacroFar(){
         intakeDone = false;
@@ -503,14 +500,13 @@ public class AutoBlueClose extends LinearOpMode {
             while (!intakeDone){
                 intake();
             }
-            sleep(1000);
             intake1.setPower(0);
         }).start();
         new Thread(()->{
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-30);
+        driveRelativeX(-18);
     }
 
     private void intake() {
@@ -592,25 +588,25 @@ public class AutoBlueClose extends LinearOpMode {
         // Loop until we reach target or timeout
         while (opModeIsActive() && !intakeDone) {
             checkColor();
-//
-//            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !shooting){
-//                new Thread(()-> {
-//                    fL.setPower(0);
-//                    fR.setPower(0);
-//                    bL.setPower(0);
-//                    bR.setPower(0);
-//                    grant.setPosition(0.5);
-//                    sleep(500);
-//                    grant.setPosition(0.02);
-//                    sleep(100);
-//                }).start();
-//            } else {
+
+            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !shooting){
+                new Thread(()-> {
+                    fL.setPower(0);
+                    fR.setPower(0);
+                    bL.setPower(0);
+                    bR.setPower(0);
+                    grant.setPosition(0.5);
+                    sleep(500);
+                    grant.setPosition(0.02);
+                    sleep(100);
+                }).start();
+            } else {
             odo.update();
             double currentX = odo.getPosition().getX(DistanceUnit.INCH);
             double error = targetX - currentX;
 
             // Stop when close enough
-            if (currentX < targetX) {
+            if (Math.abs(error) < 0.2) {
                 break;
             }
             double power = -0.28*Math.signum(error);   // apply sign
@@ -619,7 +615,7 @@ public class AutoBlueClose extends LinearOpMode {
             fR.setPower(power);
             bL.setPower(power);
             bR.setPower(power);
-//            }
+            }
         }
 
         // Stop the robot
@@ -651,8 +647,6 @@ public class AutoBlueClose extends LinearOpMode {
         double rightVelocity = fwr.getVelocity();
         telemetry.addData("Left velocity", leftVelocity);
         telemetry.addData("Right velocity", rightVelocity);
-        telemetry.addLine(pattern[0] + " " + pattern[1] + " " + pattern[2]);
-        telemetry.update();
         double avgVelocity = (leftVelocity + rightVelocity) / 2.0;
 
         pid.setSetpoint(targetVelocity);
