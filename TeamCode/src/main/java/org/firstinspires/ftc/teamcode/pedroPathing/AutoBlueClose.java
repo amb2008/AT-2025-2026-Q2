@@ -351,7 +351,7 @@ public class AutoBlueClose extends LinearOpMode {
                 }
                 if (launched){
 
-                    sleep(300);
+                    sleep(400);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
@@ -373,7 +373,7 @@ public class AutoBlueClose extends LinearOpMode {
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
                     if (counter<3){
-                        sleep(300);
+                        sleep(400);
                     }
                 }
             }

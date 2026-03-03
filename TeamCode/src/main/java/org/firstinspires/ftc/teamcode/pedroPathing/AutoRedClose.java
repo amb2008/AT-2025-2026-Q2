@@ -310,7 +310,7 @@ public class AutoRedClose extends LinearOpMode {
                 while (limelight.getLatestResult() == null){
 
                 }
-                sleep(500);
+                sleep(200);
             }
             outtaking = true;
             shooting = true;
@@ -349,7 +349,7 @@ public class AutoRedClose extends LinearOpMode {
                 }
                 if (launched){
 
-                    sleep(800);
+                    sleep(375);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
@@ -367,12 +367,11 @@ public class AutoRedClose extends LinearOpMode {
                         }
 
                     }
-                    sleep(800);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
                     if (counter<3){
-                        sleep(400);
+                        sleep(375);
                     }
                 }
             }
