@@ -90,7 +90,7 @@ public class AutoBlueFar extends LinearOpMode {
     private double turretPower = 0.95;
     private double targetTagID = 20;
     private double lastDirection = 1; //move to right at start
-    double targetVelocity = 500;
+    double targetVelocity = 840;
     double lastError = 0;
     // Safety Limits (Degrees)
     private static final double MAX_TURRET_ANGLE = 165;
@@ -645,7 +645,6 @@ public class AutoBlueFar extends LinearOpMode {
     }
     private void fwOn(){
         //limelight stuff
-        targetVelocity = 830;
         double leftVelocity = fwl.getVelocity();
         double rightVelocity = fwr.getVelocity();
         telemetry.addData("Left velocity", leftVelocity);
