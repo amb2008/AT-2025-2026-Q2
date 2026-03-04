@@ -207,6 +207,9 @@ public class AutoRedClose extends LinearOpMode {
         waitForStart();
         pid.setSetpoint(autoCloseFwSpeed);
         grant.setPosition(0.02);
+        flick1.setPosition(flicksDown[0]);
+        flick2.setPosition(flicksDown[1]);
+        flick3.setPosition(flicksDown[2]);
         new Thread(()->{
             sleep(1500);
             needPattern = false;
@@ -252,6 +255,7 @@ public class AutoRedClose extends LinearOpMode {
         // --------- STEP 3: SCORE PICKUP 1 ----------
         follower.followPath(scorePickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
+            reverseIntake();
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
@@ -277,6 +281,7 @@ public class AutoRedClose extends LinearOpMode {
         // --------- STEP 5: SCORE PICKUP 2 ----------
         follower.followPath(scorePickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
+            reverseIntake();
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
@@ -511,14 +516,10 @@ public class AutoRedClose extends LinearOpMode {
         intake1.setDirection(DcMotor.Direction.FORWARD);
         intake1.setPower(intakeSpeed);
     }
-
-//    private boolean isIntakeFull() {
-//        checkColor();
-//        // Returns true only if all three slots are filled (not "Empty")
-//        return !slotColors[0].equalsIgnoreCase("Empty") &&
-//                !slotColors[1].equalsIgnoreCase("Empty") &&
-//                !slotColors[2].equalsIgnoreCase("Empty");
-//    }
+    private void reverseIntake() {
+        intake1.setDirection(DcMotor.Direction.REVERSE);
+        intake1.setPower(intakeSpeed);
+    }
 
     private void checkColor() {
         double tolerance = 0.07;

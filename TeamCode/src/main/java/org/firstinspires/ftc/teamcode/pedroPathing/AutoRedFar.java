@@ -18,6 +18,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -40,8 +41,8 @@ public class AutoRedFar extends LinearOpMode {
     private Follower follower;
     private final Pose startPose = new Pose(87, 7, Math.toRadians(0));
     private final Pose scorePose = new Pose(87, 7, Math.toRadians(0));
-    private final Pose scorePose2 = new Pose(91, 9, Math.toRadians(0));
-    private final Pose pickup1Pose = new Pose(90, 28, Math.toRadians(0));
+    private final Pose scorePose2 = new Pose(91, 12, Math.toRadians(357));
+    private final Pose pickup1Pose = new Pose(90, 30, Math.toRadians(0));
     private final Pose pickup2Pose = new Pose(127, 12, Math.toRadians(0));
     private final Pose pickup3Pose = new Pose(110, 10, Math.toRadians(0));
     private Path scorePreload;
@@ -91,7 +92,7 @@ public class AutoRedFar extends LinearOpMode {
     private double turretPower = 0.95;
     private double targetTagID = 24;
     private double lastDirection = -1; //move to the left at start
-    double targetVelocity = 500;
+    double targetVelocity = 840;
     double lastError = 0;
     // Safety Limits (Degrees)
     private static final double MAX_TURRET_ANGLE = 170;
@@ -206,6 +207,9 @@ public class AutoRedFar extends LinearOpMode {
         waitForStart();
         pid.setSetpoint(autoCloseFwSpeed);
         grant.setPosition(0.02);
+        flick1.setPosition(flicksDown[0]);
+        flick2.setPosition(flicksDown[1]);
+        flick3.setPosition(flicksDown[2]);
         new Thread(()->{
             sleep(3500);
             needPattern = false;
@@ -220,12 +224,14 @@ public class AutoRedFar extends LinearOpMode {
             while (opModeIsActive()){
                 if (sweep){
                     moveTurret();
+                } else {
+                    turret.setPower(0);
                 }
             }
         }).start();
 
 //         --------- STEP 1: SCORE PRELOAD ----------
-        sleep(2000);
+        sleep(1500);
         outtake();
         sleep(500);
         outtake();
@@ -234,6 +240,7 @@ public class AutoRedFar extends LinearOpMode {
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
             intake();
+            sweep = false;
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
@@ -244,6 +251,8 @@ public class AutoRedFar extends LinearOpMode {
         // --------- STEP 3: SCORE PICKUP 1 ----------
         follower.followPath(scorePickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
+            sweep = false;
+            reverseIntake();
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
@@ -251,6 +260,7 @@ public class AutoRedFar extends LinearOpMode {
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
+        sleep(1000);
         outtake();
         sleep(500);
         outtake();
@@ -258,6 +268,7 @@ public class AutoRedFar extends LinearOpMode {
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
+            sweep = false;
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
@@ -269,6 +280,7 @@ public class AutoRedFar extends LinearOpMode {
         // --------- STEP 5: SCORE PICKUP 2 ----------
         follower.followPath(scorePickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
+            sweep = false;
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
@@ -290,7 +302,7 @@ public class AutoRedFar extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
-//        intakeMacroFar();
+        intakeMacroFar();
 //
 //        // --------- STEP 7: SCORE PICKUP 3 ----------
 //        follower.followPath(scorePickup3, true);
@@ -317,6 +329,11 @@ public class AutoRedFar extends LinearOpMode {
             double counter = 0;
             for (String targetColor : pattern) {
                 counter += 1;
+                if (counter == 2){
+                    targetVelocity = 820;
+                } else {
+                    targetVelocity = 840;
+                }
                 boolean launched = false;
                 checkColor();
                 for (int i = 0; i < slotColors.length; i++) {
@@ -453,7 +470,7 @@ public class AutoRedFar extends LinearOpMode {
             turret.setPower(turretPower);
         }
         else if (locked) {
-            double error = tx-1;
+            double error = tx-2;
             double dt = timer.seconds();
             if (dt == 0) dt = 0.001; // Safety
 
@@ -489,10 +506,10 @@ public class AutoRedFar extends LinearOpMode {
             intake1.setPower(0);
         }).start();
         new Thread(()->{
-            sleep(5000);
+            sleep(3500);
             intakeDone = true;
         }).start();
-        driveRelativeX(32);
+        driveRelativeX(43);
     }
     private void intakeMacroFar(){
         intakeDone = false;
@@ -503,15 +520,20 @@ public class AutoRedFar extends LinearOpMode {
             intake1.setPower(0);
         }).start();
         new Thread(()->{
-            sleep(2000);
+            sleep(2700);
             intakeDone = true;
         }).start();
         driveRelativeX(1);
-        driveRelativeY(-8);
+        driveRelativeY(-5);
     }
 
     private void intake() {
         intake1.setDirection(DcMotor.Direction.FORWARD);
+        intake1.setPower(intakeSpeed);
+    }
+
+    private void reverseIntake() {
+        intake1.setDirection(DcMotor.Direction.REVERSE);
         intake1.setPower(intakeSpeed);
     }
 
@@ -622,7 +644,7 @@ public class AutoRedFar extends LinearOpMode {
                 if (currentY <= targetY) break;
             }
 
-            double power = 0.35 * Math.signum(error); // Strafing usually requires more power to overcome friction
+            double power = -0.4 * Math.signum(error); // Strafing usually requires more power to overcome friction
 
             // Mecanum Strafe Pattern
             // Left Front and Right Back go one way; Right Front and Left Back go the other.
@@ -635,7 +657,6 @@ public class AutoRedFar extends LinearOpMode {
 
     private void fwOn(){
         //limelight stuff
-        targetVelocity = 830;
         double leftVelocity = fwl.getVelocity();
         double rightVelocity = fwr.getVelocity();
         telemetry.addData("Left velocity", leftVelocity);

@@ -206,6 +206,9 @@ public class AutoBlueClose extends LinearOpMode {
         waitForStart();
         pid.setSetpoint(autoCloseFwSpeed);
         grant.setPosition(0.02);
+        flick1.setPosition(flicksDown[0]);
+        flick2.setPosition(flicksDown[1]);
+        flick3.setPosition(flicksDown[2]);
         new Thread(()->{
             sleep(1500);
             needPattern = false;
@@ -229,6 +232,7 @@ public class AutoBlueClose extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
+        sleep(100);
         outtake();
         sleep(500);
         outtake();
@@ -247,6 +251,7 @@ public class AutoBlueClose extends LinearOpMode {
         // --------- STEP 3: SCORE PICKUP 1 ----------
         follower.followPath(scorePickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
+            reverseIntake();
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
@@ -272,6 +277,7 @@ public class AutoBlueClose extends LinearOpMode {
         // --------- STEP 5: SCORE PICKUP 2 ----------
         follower.followPath(scorePickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
+            reverseIntake();
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
@@ -515,6 +521,11 @@ public class AutoBlueClose extends LinearOpMode {
 
     private void intake() {
         intake1.setDirection(DcMotor.Direction.FORWARD);
+        intake1.setPower(intakeSpeed);
+    }
+
+    private void reverseIntake() {
+        intake1.setDirection(DcMotor.Direction.REVERSE);
         intake1.setPower(intakeSpeed);
     }
 
