@@ -41,9 +41,9 @@ public class AutoRedClose extends LinearOpMode {
     private final Pose startPose = new Pose(127, 124, Math.toRadians(210));
     private final Pose scorePose = new Pose(86, 96, Math.toRadians(352));
     private final Pose scorePose2 = new Pose(86, 96, Math.toRadians(352));
-    private final Pose pickup1Pose = new Pose(89, 93, Math.toRadians(352));
-    private final Pose pickup2Pose = new Pose(89, 73, Math.toRadians(352));
-    private final Pose pickup3Pose = new Pose(94, 28, Math.toRadians(352));
+    private final Pose pickup1Pose = new Pose(90, 93, Math.toRadians(348));
+    private final Pose pickup2Pose = new Pose(90, 71, Math.toRadians(352));
+    private final Pose pickup3Pose = new Pose(90, 48, Math.toRadians(352));
 
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
@@ -208,7 +208,7 @@ public class AutoRedClose extends LinearOpMode {
         pid.setSetpoint(autoCloseFwSpeed);
         grant.setPosition(0.02);
         new Thread(()->{
-            sleep(3500);
+            sleep(1500);
             needPattern = false;
         }).start();
         new Thread(()->{
@@ -230,7 +230,9 @@ public class AutoRedClose extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
         }
-        sleep(2000);
+        sleep(100);
+        outtake();
+        sleep(500);
         outtake();
         sweep = false;
         // --------- STEP 2: GRAB PICKUP 1 ----------
@@ -242,6 +244,9 @@ public class AutoRedClose extends LinearOpMode {
             telemetry.update();
         }
         telemetry.addLine("Path finished");
+        telemetry.addData("Slot 1", slotColors[0]);
+        telemetry.addData("Slot 2", slotColors[1]);
+        telemetry.addData("Slot 3", slotColors[2]);
         telemetry.update();
         intakeMacroClose();
         // --------- STEP 3: SCORE PICKUP 1 ----------
@@ -254,6 +259,8 @@ public class AutoRedClose extends LinearOpMode {
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
+        outtake();
+        sleep(500);
         outtake();
         sweep = false;
         // --------- STEP 4: GRAB PICKUP 2 ----------
@@ -274,9 +281,13 @@ public class AutoRedClose extends LinearOpMode {
             telemetry.addLine("Following path");
             telemetry.update();
         }
-        telemetry.addLine("Path finished");
+        telemetry.addData("Slot 1", slotColors[0]);
+        telemetry.addData("Slot 2", slotColors[1]);
+        telemetry.addData("Slot 3", slotColors[2]);
         telemetry.update();
         sweep = true;
+        outtake();
+        sleep(500);
         outtake();
         sweep = false;
         // --------- STEP 6: GRAB PICKUP 3 ----------
@@ -300,6 +311,8 @@ public class AutoRedClose extends LinearOpMode {
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
+        outtake();
+        sleep(500);
         outtake();
         sweep = false;
     }
@@ -348,31 +361,15 @@ public class AutoRedClose extends LinearOpMode {
                     }
                 }
                 if (launched){
-
-                    sleep(800);
-                    flick1.setPosition(flicksDown[0]);
-                    flick2.setPosition(flicksDown[1]);
-                    flick3.setPosition(flicksDown[2]);
-                    for (int i = 0; i < slotColors.length; i++){
-                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")) {
-                            if (i==0){
-                                flick1.setPosition(flicksUp[0]);
-                            } else if (i==1){
-                                flick2.setPosition(flicksUp[1]);
-                            } else if (i==2){
-                                flick3.setPosition(flicksUp[2]);
-                            }
-                            break;
-
-                        }
-
+                    sleep(500);
+                    if (counter == 1){
+                        sleep(400);
                     }
-                    sleep(800);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
                     if (counter<3){
-                        sleep(400);
+                        sleep(300);
                     }
                 }
             }
@@ -394,17 +391,14 @@ public class AutoRedClose extends LinearOpMode {
                 pattern[0] = "green";
                 pattern[1] = "purple";
                 pattern[2] = "purple";
-                needPattern = false;
             } else if (tagId == 22) {
                 pattern[0] = "purple";
                 pattern[1] = "green";
                 pattern[2] = "purple";
-                needPattern = false;
             } else if (tagId == 23) {
                 pattern[0] = "purple";
                 pattern[1] = "purple";
                 pattern[2] = "green";
-                needPattern = false;
             }
             telemetry.addData("AprilTag ID", tagId);
             telemetry.addData("Pattern 0", pattern[0]);
@@ -488,14 +482,14 @@ public class AutoRedClose extends LinearOpMode {
             while (!intakeDone){
                 intake();
             }
-            sleep(1000);
+            sleep(2000);
             intake1.setPower(0);
         }).start();
         new Thread(()->{
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-5);
+        driveRelativeX(25);
     }
     private void intakeMacroFar(){
         intakeDone = false;
@@ -510,7 +504,7 @@ public class AutoRedClose extends LinearOpMode {
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-22);
+        driveRelativeX(30);
     }
 
     private void intake() {
@@ -612,10 +606,10 @@ public class AutoRedClose extends LinearOpMode {
                 // Stop when close enough
                 telemetry.addData("Current X", currentX);
                 telemetry.addData("Target X", targetX);
-                if (currentX<targetX) {
+                if (currentX>targetX) {
                     break;
                 }
-                double power = -0.28*Math.signum(error);   // apply sign
+                double power = 0.28*Math.signum(error);   // apply sign
                 // Mecanum pure strafe
                 fL.setPower(power);
                 fR.setPower(power);

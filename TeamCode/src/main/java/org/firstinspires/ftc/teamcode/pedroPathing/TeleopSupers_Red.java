@@ -612,6 +612,9 @@ public class TeleopSupers_Red extends LinearOpMode {
             targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
             targetVelocity = targetVelocity * 1.05; //tweak if shooting to short or far
             targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
+            if (targetVelocity > 700){
+                targetVelocity = 840;
+            }
             telemetry.addData("Distance", distance);
             telemetry.addData("Target velocity", targetVelocity);
         } else {

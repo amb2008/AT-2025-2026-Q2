@@ -207,7 +207,7 @@ public class AutoBlueClose extends LinearOpMode {
         pid.setSetpoint(autoCloseFwSpeed);
         grant.setPosition(0.02);
         new Thread(()->{
-            sleep(2000);
+            sleep(1500);
             needPattern = false;
         }).start();
         new Thread(()->{
@@ -230,6 +230,7 @@ public class AutoBlueClose extends LinearOpMode {
             follower.update();
         }
         outtake();
+        sleep(500);
         outtake();
         sweep = false;
         // --------- STEP 2: GRAB PICKUP 1 ----------
@@ -254,6 +255,7 @@ public class AutoBlueClose extends LinearOpMode {
         telemetry.update();
         sweep = true;
         outtake();
+        sleep(500);
         outtake();
         sweep = false;
         // --------- STEP 4: GRAB PICKUP 2 ----------
@@ -278,6 +280,7 @@ public class AutoBlueClose extends LinearOpMode {
         telemetry.update();
         sweep = true;
         outtake();
+        sleep(500);
         outtake();
         sweep = false;
 
@@ -395,17 +398,14 @@ public class AutoBlueClose extends LinearOpMode {
                 pattern[0] = "green";
                 pattern[1] = "purple";
                 pattern[2] = "purple";
-                needPattern = false;
             } else if (tagId == 22) {
                 pattern[0] = "purple";
                 pattern[1] = "green";
                 pattern[2] = "purple";
-                needPattern = false;
             } else if (tagId == 23) {
                 pattern[0] = "purple";
                 pattern[1] = "purple";
                 pattern[2] = "green";
-                needPattern = false;
             }
             telemetry.addData("AprilTag ID", tagId);
             telemetry.addData("Pattern 0", pattern[0]);

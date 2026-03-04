@@ -75,6 +75,7 @@ public class AutoBlueFar extends LinearOpMode {
     private boolean intakeReady = true;
     private boolean needPattern = true;
     private boolean outtaking = false;
+    private boolean sweep = true;
     private boolean wackSet = false;
     private double count = 0;
     private boolean intakeDone = false;
@@ -221,11 +222,11 @@ public class AutoBlueFar extends LinearOpMode {
         }).start();
 
 //         --------- STEP 1: SCORE PRELOAD ----------
-        follower.followPath(scorePreload);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
+        sleep(2000);
         outtake();
+        sleep(500);
+        outtake();
+        sweep = false;
         // --------- STEP 2: GRAB PICKUP 1 ----------
         follower.followPath(grabPickup1, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -234,68 +235,64 @@ public class AutoBlueFar extends LinearOpMode {
             telemetry.addLine("Following path");
             telemetry.update();
         }
-//        telemetry.addLine("Path finished");
-//        telemetry.update();
-//        intakeMacroClose();
-//        // --------- STEP 3: SCORE PICKUP 1 ----------
-//        follower.followPath(scorePickup1, true);
-//        while (opModeIsActive() && follower.isBusy()) {
-//            follower.update();
-//            telemetry.addLine("Following path");
-//            telemetry.update();
-//        }
-//        telemetry.addLine("Path finished");
-//        telemetry.update();
-//        outtake();
-//        // --------- STEP 4: GRAB PICKUP 2 ----------
-//        follower.followPath(grabPickup2, true);
-//        while (opModeIsActive() && follower.isBusy()) {
-//            follower.update();
-//            telemetry.addLine("Following path");
-//            telemetry.update();
-//        }
-//        telemetry.addLine("Path finished");
-//        telemetry.update();
-//        intakeMacroFar();
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        intakeMacroClose();
+        // --------- STEP 3: SCORE PICKUP 1 ----------
+        follower.followPath(scorePickup1, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        sweep = true;
+        outtake();
+        sleep(500);
+        outtake();
+        sweep = false;
+        // --------- STEP 4: GRAB PICKUP 2 ----------
+        follower.followPath(grabPickup2, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        intakeMacroFar();
 //
-//        // --------- STEP 5: SCORE PICKUP 2 ----------
-//        follower.followPath(scorePickup2, true);
-//        while (opModeIsActive() && follower.isBusy()) {
-//            follower.update();
-//            telemetry.addLine("Following path");
-//            telemetry.update();
-//        }
-//        telemetry.addLine("Path finished");
-//        telemetry.update();
-//        outtake();
+        // --------- STEP 5: SCORE PICKUP 2 ----------
+        follower.followPath(scorePickup2, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        sweep = true;
+        outtake();
+        sleep(500);
+        outtake();
+        sweep = false;
 //
-//        // --------- STEP 6: GRAB PICKUP 3 ----------
-//        follower.followPath(grabPickup3, true);
-//        while (opModeIsActive() && follower.isBusy()) {
-//            follower.update();
-//            telemetry.addLine("Following path");
-//            telemetry.update();
-//        }
-//        telemetry.addLine("Path finished");
-//        telemetry.update();
-//        intakeMacroFar();
-//
-//        // --------- STEP 7: SCORE PICKUP 3 ----------
-//        follower.followPath(scorePickup3, true);
-//        while (opModeIsActive() && follower.isBusy()) {
-//            follower.update();
-//            telemetry.addLine("Following path");
-//            telemetry.update();
-//        }
-//        telemetry.addLine("Path finished");
-//        telemetry.update();
-//        outtake();
+        // --------- STEP 6: GRAB PICKUP 3 ----------
+        follower.followPath(grabPickup3, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
     }
 
     private void outtake() {
         if (!outtaking) {
-            if (limelight.getLatestResult() == null){
-                while (limelight.getLatestResult() == null){
+            if (limelight.getLatestResult() == null) {
+                while (limelight.getLatestResult() == null) {
 
                 }
                 sleep(500);
@@ -307,27 +304,27 @@ public class AutoBlueFar extends LinearOpMode {
                 counter += 1;
                 boolean launched = false;
                 checkColor();
-                for (int i = 0; i < slotColors.length; i++){
-                    if (slotColors[i].equalsIgnoreCase(targetColor)){
-                        if (i==0){
+                for (int i = 0; i < slotColors.length; i++) {
+                    if (slotColors[i].equalsIgnoreCase(targetColor)) {
+                        if (i == 0) {
                             flick1.setPosition(flicksUp[0]);
-                        } else if (i==1){
+                        } else if (i == 1) {
                             flick2.setPosition(flicksUp[1]);
-                        } else if (i==2){
+                        } else if (i == 2) {
                             flick3.setPosition(flicksUp[2]);
                         }
                         launched = true;
                         break;
                     }
                 }
-                if (!launched){
-                    for (int i = 0; i < slotColors.length; i++){
-                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")){
-                            if (i==0){
+                if (!launched) {
+                    for (int i = 0; i < slotColors.length; i++) {
+                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")) {
+                            if (i == 0) {
                                 flick1.setPosition(flicksUp[0]);
-                            } else if (i==1){
+                            } else if (i == 1) {
                                 flick2.setPosition(flicksUp[1]);
-                            } else if (i==2){
+                            } else if (i == 2) {
                                 flick3.setPosition(flicksUp[2]);
                             }
                             launched = true;
@@ -335,19 +332,19 @@ public class AutoBlueFar extends LinearOpMode {
                         }
                     }
                 }
-                if (launched){
+                if (launched) {
 
-                    sleep(800);
+                    sleep(300);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
-                    for (int i = 0; i < slotColors.length; i++){
+                    for (int i = 0; i < slotColors.length; i++) {
                         if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")) {
-                            if (i==0){
+                            if (i == 0) {
                                 flick1.setPosition(flicksUp[0]);
-                            } else if (i==1){
+                            } else if (i == 1) {
                                 flick2.setPosition(flicksUp[1]);
-                            } else if (i==2){
+                            } else if (i == 2) {
                                 flick3.setPosition(flicksUp[2]);
                             }
                             break;
@@ -355,12 +352,11 @@ public class AutoBlueFar extends LinearOpMode {
                         }
 
                     }
-                    sleep(800);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
-                    if (counter<3){
-                        sleep(400);
+                    if (counter < 3) {
+                        sleep(300);
                     }
                 }
             }
@@ -442,7 +438,7 @@ public class AutoBlueFar extends LinearOpMode {
             turret.setPower(turretPower);
         }
         else if (locked) {
-            double error = tx;
+            double error = tx+1;
             double dt = timer.seconds();
             if (dt == 0) dt = 0.001; // Safety
 
@@ -481,7 +477,7 @@ public class AutoBlueFar extends LinearOpMode {
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-18);
+        driveRelativeX(-32);
     }
     private void intakeMacroFar(){
         intakeDone = false;
@@ -492,24 +488,16 @@ public class AutoBlueFar extends LinearOpMode {
             intake1.setPower(0);
         }).start();
         new Thread(()->{
-            sleep(5000);
+            sleep(2000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-18);
+        driveRelativeX(-1);
+        driveRelativeY(-8);
     }
-
     private void intake() {
         intake1.setDirection(DcMotor.Direction.FORWARD);
         intake1.setPower(intakeSpeed);
     }
-
-//    private boolean isIntakeFull() {
-//        checkColor();
-//        // Returns true only if all three slots are filled (not "Empty")
-//        return !slotColors[0].equalsIgnoreCase("Empty") &&
-//                !slotColors[1].equalsIgnoreCase("Empty") &&
-//                !slotColors[2].equalsIgnoreCase("Empty");
-//    }
 
     private void checkColor() {
         double tolerance = 0.07;
@@ -576,35 +564,20 @@ public class AutoBlueFar extends LinearOpMode {
         double targetX = startX + inches;
         // Loop until we reach target or timeout
         while (opModeIsActive() && !intakeDone) {
-            checkColor();
+            odo.update();
+            double currentX = odo.getPosition().getX(DistanceUnit.INCH);
+            double error = targetX - currentX;
 
-            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !shooting){
-                new Thread(()-> {
-                    fL.setPower(0);
-                    fR.setPower(0);
-                    bL.setPower(0);
-                    bR.setPower(0);
-                    grant.setPosition(0.5);
-                    sleep(500);
-                    grant.setPosition(0.02);
-                    sleep(100);
-                }).start();
-            } else {
-                odo.update();
-                double currentX = odo.getPosition().getX(DistanceUnit.INCH);
-                double error = targetX - currentX;
-
-                // Stop when close enough
-                if (Math.abs(error) < 0.2) {
-                    break;
-                }
-                double power = -0.28*Math.signum(error);   // apply sign
-                // Mecanum pure strafe
-                fL.setPower(power);
-                fR.setPower(power);
-                bL.setPower(power);
-                bR.setPower(power);
+            if (currentX < targetX) {
+                break;
             }
+            double power = -0.28*Math.signum(error);   // apply sign
+            // Mecanum pure strafe
+            fL.setPower(power);
+            fR.setPower(power);
+            bL.setPower(power);
+            bR.setPower(power);
+//            }
         }
 
         // Stop the robot
@@ -614,24 +587,43 @@ public class AutoBlueFar extends LinearOpMode {
         bR.setPower(0);
     }
 
+    public void driveRelativeY(double inches) {
+        odo.update();
+        double startY = odo.getPosition().getY(DistanceUnit.INCH);
+        double targetY = startY + inches;
+
+        // Determine direction so we can stop correctly
+        boolean movingPositive = inches > 0;
+
+        while (opModeIsActive() && !intakeDone) {
+            odo.update();
+            double currentY = odo.getPosition().getY(DistanceUnit.INCH);
+            double error = targetY - currentY;
+
+            telemetry.addData("Current Y", currentY);
+            telemetry.addData("Target Y", targetY);
+            telemetry.update();
+
+            // Exit condition: check if we've reached or passed the target
+            if (movingPositive) {
+                if (currentY >= targetY) break;
+            } else {
+                if (currentY <= targetY) break;
+            }
+
+            double power = -0.35 * Math.signum(error); // Strafing usually requires more power to overcome friction
+
+            // Mecanum Strafe Pattern
+            // Left Front and Right Back go one way; Right Front and Left Back go the other.
+            fL.setPower(power);
+            fR.setPower(-power);
+            bL.setPower(-power);
+            bR.setPower(power);
+        }
+    }
     private void fwOn(){
         //limelight stuff
-        limelight.updateRobotOrientation(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
-        LLResult llResult = limelight.getLatestResult();
-        if (llResult != null && llResult.isValid()){
-            Pose3D botpose = llResult.getBotpose();
-            double camX  = -botpose.getPosition().x;
-            double camY  = botpose.getPosition().y;
-            double distance = Math.sqrt(Math.pow((mtBlueX-camX), 2) + Math.pow((mtBlueY-camY),2));
-            targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
-            targetVelocity = targetVelocity * 1.02; //tweak if shooting to short or far
-            targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
-            telemetry.addData("Distance", distance);
-            telemetry.addData("Target velocity", targetVelocity);
-        } else {
-            telemetry.addLine("No result");
-        }
-
+        targetVelocity = 830;
         double leftVelocity = fwl.getVelocity();
         double rightVelocity = fwr.getVelocity();
         telemetry.addData("Left velocity", leftVelocity);

@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 import static org.firstinspires.ftc.teamcode.CONSTANTS.flicksDown;
 import static org.firstinspires.ftc.teamcode.CONSTANTS.flicksUp;
+
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -11,7 +13,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.Objects;
 
 @TeleOp(name = "Grant Popick Flicker Tuning", group = "Debug")
-//@Disabled
+@Disabled
 public class GrantFlickerTesting extends LinearOpMode {
     private Servo flick1 = null;
     private Servo flick2 = null;
