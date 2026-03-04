@@ -260,6 +260,7 @@ public class AutoRedClose extends LinearOpMode {
             telemetry.addLine("Following path");
             telemetry.update();
         }
+        intake1.setPower(0);
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -286,10 +287,7 @@ public class AutoRedClose extends LinearOpMode {
             telemetry.addLine("Following path");
             telemetry.update();
         }
-        telemetry.addData("Slot 1", slotColors[0]);
-        telemetry.addData("Slot 2", slotColors[1]);
-        telemetry.addData("Slot 3", slotColors[2]);
-        telemetry.update();
+        intake1.setPower(0);
         sweep = true;
         outtake();
         sleep(500);

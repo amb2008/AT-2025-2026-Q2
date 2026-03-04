@@ -257,6 +257,7 @@ public class AutoRedFar extends LinearOpMode {
             telemetry.addLine("Following path");
             telemetry.update();
         }
+        intake1.setPower(0);
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -281,10 +282,12 @@ public class AutoRedFar extends LinearOpMode {
         follower.followPath(scorePickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
             sweep = false;
+            reverseIntake();
             follower.update();
             telemetry.addLine("Following path");
             telemetry.update();
         }
+        intake1.setPower(0);
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;

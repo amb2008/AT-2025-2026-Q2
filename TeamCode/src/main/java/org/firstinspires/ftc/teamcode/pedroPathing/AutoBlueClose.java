@@ -256,6 +256,7 @@ public class AutoBlueClose extends LinearOpMode {
             telemetry.addLine("Following path");
             telemetry.update();
         }
+        intake1.setPower(0);
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -282,6 +283,7 @@ public class AutoBlueClose extends LinearOpMode {
             telemetry.addLine("Following path");
             telemetry.update();
         }
+        intake1.setPower(0);
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
