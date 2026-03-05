@@ -94,6 +94,7 @@ public class TeleopSupers extends LinearOpMode {
 
     //    manual booleans
     private boolean aWasPressed = false;
+    private boolean trigPressed = false;
     private boolean yWasPressed = false;
     private boolean xWasPressed = false;
     private double lastPos = suzani[servoIndex];
@@ -224,13 +225,17 @@ public class TeleopSupers extends LinearOpMode {
             limelight.pipelineSwitch(1);
             driveMecanum();
 
-            if (gamepad1.left_trigger >0.1){
-                fwCurrSpeed = fwNearSpeed;
-                fwoff = false;
-            } else if (gamepad1.right_trigger >0.1){
-                fwCurrSpeed = fwFarSpeed;
-                fwoff = false;
-            } else if (gamepad2.dpad_down) {
+            if (gamepad1.left_trigger >0.1 && !trigPressed){
+                trigPressed = true;
+                lastDirection = -lastDirection;
+            } else if (gamepad1.right_trigger >0.1 && !trigPressed){
+                trigPressed = true;
+                lastDirection = -lastDirection;
+            }
+            if (gamepad1.left_trigger <0.1 && gamepad1.right_trigger <0.1 ){
+                trigPressed = false;
+            }
+            if (gamepad2.dpad_down) {
                fwOff();
             }
             else if (gamepad2.dpad_up) {

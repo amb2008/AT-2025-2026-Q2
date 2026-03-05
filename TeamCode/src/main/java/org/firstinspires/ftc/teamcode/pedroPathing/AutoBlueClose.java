@@ -39,10 +39,10 @@ public class AutoBlueClose extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
-    private final Pose scorePose = new Pose(59, 94, Math.toRadians(185));
+    private final Pose scorePose = new Pose(58, 93, Math.toRadians(185));
     private final Pose scorePose2 = new Pose(54, 91, Math.toRadians(185));
     private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(185));
-    private final Pose pickup2Pose = new Pose(50, 70, Math.toRadians(185));
+    private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
     private final Pose pickup3Pose = new Pose(50, 46, Math.toRadians(185));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
@@ -223,6 +223,8 @@ public class AutoBlueClose extends LinearOpMode {
             while (opModeIsActive()){
                 if (sweep) {
                     moveTurret();
+                } else {
+                    turret.setPower(0);
                 }
             }
         }).start();
@@ -385,6 +387,15 @@ public class AutoBlueClose extends LinearOpMode {
                     flick3.setPosition(flicksDown[2]);
                     if (counter<3){
                         sleep(300);
+                    }
+                }
+                if (counter == 1){
+                    sleep(200);
+                    checkColor();
+                    if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
+                        outtaking = false;
+                        outtake();
+                        break;
                     }
                 }
             }

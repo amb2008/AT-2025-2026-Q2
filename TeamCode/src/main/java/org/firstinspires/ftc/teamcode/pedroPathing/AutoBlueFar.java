@@ -39,10 +39,10 @@ public class AutoBlueFar extends LinearOpMode {
     private Follower follower;
     private final Pose startPose = new Pose(57, 7, Math.toRadians(180));
     private final Pose scorePose = new Pose(57, 7, Math.toRadians(180));
-    private final Pose scorePose2 = new Pose(51, 12, Math.toRadians(180));
+    private final Pose scorePose2 = new Pose(49, 9, Math.toRadians(180));
     private final Pose pickup1Pose = new Pose(50, 30, Math.toRadians(180));
-    private final Pose pickup2Pose = new Pose(13, 12, Math.toRadians(180));
-    private final Pose pickup3Pose = new Pose(25, 10, Math.toRadians(180));
+    private final Pose pickup2Pose = new Pose(14, 12, Math.toRadians(180));
+    private final Pose pickup3Pose = new Pose(30, 10, Math.toRadians(180));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
@@ -90,7 +90,7 @@ public class AutoBlueFar extends LinearOpMode {
     private double turretPower = 0.95;
     private double targetTagID = 20;
     private double lastDirection = 1; //move to right at start
-    double targetVelocity = 840;
+    double targetVelocity = 810;
     double lastError = 0;
     // Safety Limits (Degrees)
     private static final double MAX_TURRET_ANGLE = 165;
@@ -314,9 +314,9 @@ public class AutoBlueFar extends LinearOpMode {
             for (String targetColor : pattern) {
                 counter += 1;
                 if (counter == 2){
-                    targetVelocity = 820;
+                    targetVelocity = 800;
                 } else {
-                    targetVelocity = 840;
+                    targetVelocity = 810;
                 }
                 boolean launched = false;
                 checkColor();
@@ -439,7 +439,7 @@ public class AutoBlueFar extends LinearOpMode {
             for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
                 if (tag.getFiducialId() == targetTagID) {
                     tx = tag.getTargetXDegrees();
-                    lastDirection = Math.signum(tx)*1;
+                    lastDirection = Math.signum(tx+1.5)*1;
                     locked = true;
                     break;
                 }
@@ -455,7 +455,7 @@ public class AutoBlueFar extends LinearOpMode {
             turret.setPower(turretPower);
         }
         else if (locked) {
-            double error = tx+2;
+            double error = tx+1.5;
             double dt = timer.seconds();
             if (dt == 0) dt = 0.001; // Safety
 
@@ -471,7 +471,7 @@ public class AutoBlueFar extends LinearOpMode {
             outputPower = pTerm + dTerm + fTerm;
             lastError = error;
             timer.reset();
-            if (Math.abs(error) > 1) {
+            if (Math.abs(error) > 0.6) {
                 turret.setPower(Range.clip(outputPower, -0.75, 0.75));
             } else {
                 turret.setPower(0);
@@ -491,10 +491,10 @@ public class AutoBlueFar extends LinearOpMode {
             intake1.setPower(0);
         }).start();
         new Thread(()->{
-            sleep(3500);
+            sleep(4000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-43);
+        driveRelativeX(-44);
     }
     private void intakeMacroFar(){
         intakeDone = false;
@@ -505,11 +505,13 @@ public class AutoBlueFar extends LinearOpMode {
             intake1.setPower(0);
         }).start();
         new Thread(()->{
-            sleep(2700);
+            sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(1);
-        driveRelativeY(-5);
+        driveRelativeX(2);
+        driveRelativeX(-1);
+        driveRelativeY(-4);
+        driveRelativeX(4);
     }
     private void intake() {
         intake1.setDirection(DcMotor.Direction.FORWARD);

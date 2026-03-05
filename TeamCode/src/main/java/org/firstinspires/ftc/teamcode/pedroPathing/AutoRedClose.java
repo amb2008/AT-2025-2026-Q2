@@ -224,6 +224,8 @@ public class AutoRedClose extends LinearOpMode {
             while (opModeIsActive()){
                 if (sweep) {
                     moveTurret();
+                } else {
+                    turret.setPower(0);
                 }
             }
         }).start();
@@ -364,15 +366,39 @@ public class AutoRedClose extends LinearOpMode {
                     }
                 }
                 if (launched){
-                    sleep(500);
-                    if (counter == 1){
-                        sleep(400);
+
+                    sleep(300);
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+                    for (int i = 0; i < slotColors.length; i++){
+                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")) {
+                            if (i==0){
+                                flick1.setPosition(flicksUp[0]);
+                            } else if (i==1){
+                                flick2.setPosition(flicksUp[1]);
+                            } else if (i==2){
+                                flick3.setPosition(flicksUp[2]);
+                            }
+                            break;
+
+                        }
+
                     }
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
                     if (counter<3){
                         sleep(300);
+                    }
+                }
+                if (counter == 1){
+                    sleep(200);
+                    checkColor();
+                    if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
+                        outtaking = false;
+                        outtake();
+                        break;
                     }
                 }
             }
