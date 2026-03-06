@@ -57,6 +57,7 @@ public class AutoRedClose extends LinearOpMode {
     private DcMotorEx fwl = null;
     private DcMotorEx fwr = null;
     private DcMotor intake1 = null;
+    private DcMotor intake2 = null;
     private Servo flick1 = null;
     private Servo flick2 = null;
     private Servo flick3 = null;
@@ -155,6 +156,7 @@ public class AutoRedClose extends LinearOpMode {
         fwl = hardwareMap.get(DcMotorEx.class, "fwl");
         fwr = hardwareMap.get(DcMotorEx.class, "fwr");
         intake1 = hardwareMap.get(DcMotor.class, "intake1");
+        intake2 = hardwareMap.get(DcMotor.class, "intake2");
         flick1 = hardwareMap.get(Servo.class, "flick1");
         flick2 = hardwareMap.get(Servo.class, "flick2");
         flick3 = hardwareMap.get(Servo.class, "flick3");
@@ -211,7 +213,7 @@ public class AutoRedClose extends LinearOpMode {
         flick2.setPosition(flicksDown[1]);
         flick3.setPosition(flicksDown[2]);
         new Thread(()->{
-            sleep(1500);
+            sleep(2000);
             needPattern = false;
         }).start();
         new Thread(()->{
@@ -263,6 +265,12 @@ public class AutoRedClose extends LinearOpMode {
             telemetry.update();
         }
         intake1.setPower(0);
+        intake2.setPower(0);
+        new Thread(()->{
+            sleep(500);
+            intake1.setPower(0);
+            intake2.setPower(0);
+        }).start();
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -290,6 +298,12 @@ public class AutoRedClose extends LinearOpMode {
             telemetry.update();
         }
         intake1.setPower(0);
+        intake2.setPower(0);
+        new Thread(()->{
+            sleep(500);
+            intake1.setPower(0);
+            intake2.setPower(0);
+        }).start();
         sweep = true;
         outtake();
         sleep(500);
@@ -513,6 +527,7 @@ public class AutoRedClose extends LinearOpMode {
             }
             sleep(2000);
             intake1.setPower(0);
+            intake2.setPower(0);
         }).start();
         new Thread(()->{
             sleep(5000);
@@ -528,6 +543,7 @@ public class AutoRedClose extends LinearOpMode {
             }
             sleep(1000);
             intake1.setPower(0);
+            intake2.setPower(0);
         }).start();
         new Thread(()->{
             sleep(5000);
@@ -539,10 +555,14 @@ public class AutoRedClose extends LinearOpMode {
     private void intake() {
         intake1.setDirection(DcMotor.Direction.FORWARD);
         intake1.setPower(intakeSpeed);
+        intake2.setDirection(DcMotor.Direction.REVERSE);
+        intake2.setPower(intakeSpeed);
     }
     private void reverseIntake() {
         intake1.setDirection(DcMotor.Direction.REVERSE);
         intake1.setPower(intakeSpeed);
+        intake2.setDirection(DcMotor.Direction.FORWARD);
+        intake2.setPower(intakeSpeed);
     }
 
     private void checkColor() {

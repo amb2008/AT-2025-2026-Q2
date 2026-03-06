@@ -9,80 +9,106 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.AnalogInput;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import static org.firstinspires.ftc.teamcode.CONSTANTS.*;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 import java.util.ArrayList;
 import java.util.List;
-@Disabled
+//@Disabled
+
 @Autonomous(name = "RED - Wall",group="Robot")
 public class AutoRedWall extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
-    private final Pose startPose = new Pose(87, 9, Math.toRadians(90));
-    private final Pose scorePose = new Pose(88, 16, Math.toRadians(-27));
-    private final Pose scorePose2 = new Pose(97, 17, Math.toRadians(-27));
-    private final Pose pickup1Pose = new Pose(123, 15, Math.toRadians(0));
-    private final Pose pickup2Pose = new Pose(104, 16, Math.toRadians(90));
-    private final Pose pickup3Pose = new Pose(46, 84, Math.toRadians(180));
+    private final Pose startPose = new Pose(87, 7, Math.toRadians(0));
+    private final Pose scorePose = new Pose(87, 7, Math.toRadians(0));
+    private final Pose scorePose2 = new Pose(91, 12, Math.toRadians(357));
+    private final Pose pickup1Pose = new Pose(90, 30, Math.toRadians(0));
+    private final Pose pickup2Pose = new Pose(127, 12, Math.toRadians(0));
+    private final Pose pickup3Pose = new Pose(110, 10, Math.toRadians(0));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
     //    NON PEDRO
     private ElapsedTime runtime = new ElapsedTime();
-    private DcMotorEx fL = null;
-    private DcMotorEx bL = null;
-    private DcMotorEx fR = null;
-    private DcMotorEx bR = null;
+    private DcMotor fL = null;
+    private DcMotor bL = null;
+    private DcMotor fR = null;
+    private DcMotor bR = null;
     private DcMotorEx fwl = null;
     private DcMotorEx fwr = null;
     private DcMotor intake1 = null;
-    private Servo sorting1 = null;
-    private Servo sorting2 = null;
-    private Servo limelightmount = null;
+    private DcMotor intake2 = null;
+    private Servo flick1 = null;
+    private Servo flick2 = null;
+    private Servo flick3 = null;
+    private Servo grant = null;
+    private CRServo turret = null;
     private Limelight3A limelight;
-    private double llServoPos = 0.3;
-    private ColorSensor colorSensor;
-    private int servoIndex = 0;  // start at first position
-    private String[] slotColors = {"Purple", "Purple", "Green"};
+    private ColorSensor cs1a;
+    private ColorSensor cs1b;
+    private ColorSensor cs2a;
+    private ColorSensor cs2b;
+    private ColorSensor cs3a;
+    private ColorSensor cs3b;
+    private int servoIndex = 0;  // start at fir
+    // st position
+    private String[] slotColors = {"Empty", "Empty", "Empty"};
     private String[] pattern = {"purple", "purple", "green"};
-    private String lastBallColor = "Unknown";
     private boolean sweepingForward = true;
-    private double heading = 0.0;
-    private double axial = 0.0;
-    private double lateral = 0.0;
-    private double yaw = 0.0;
     private boolean intakeReady = true;
-    private boolean shoot = false;
-    private boolean firstIntake = false;
+    private boolean sweep = true;
     private boolean needPattern = true;
-    private boolean intakeDone = false;
-    private double lastPos = suzani[servoIndex];
+    private boolean outtaking = false;
+    private boolean wackSet = false;
     private double count = 0;
+    private boolean intakeDone = false;
+
+    boolean shooting = false;
+    //        AXON ENCODER TRACKING
+    private AnalogInput axonEncoder;
+    private static final double MAX_VOLTAGE = 3.3; // Check your specific hub, usually 3.3V
+    private static final double GEAR_RATIO = 5.0;  // 5:1 Reduction
+    private double lastVoltage = 0;
+    private int rotationCount = 0;
+    private double turretPower = 0.95;
+    private double targetTagID = 24;
+    private double lastDirection = -1; //move to the left at start
+    double targetVelocity = 840;
+    double lastError = 0;
+    // Safety Limits (Degrees)
+    private static final double MAX_TURRET_ANGLE = 170;
+    private static final double MIN_TURRET_ANGLE = -170;
 
     //    FLYWHEEL
-    PIDController pid = new PIDController(0.0115, 0.0, 0.0);
+    PIDController pid = new PIDController(0.041, 0.0, 0.0);
+    private IMU imu;
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
-    final double headingConstraint = Math.toRadians(0.5);
-    ElapsedTime llTimer = new ElapsedTime();
+    ElapsedTime timer = new ElapsedTime();
     public void buildPaths() {
         scorePreload = new Path(new BezierLine(startPose, scorePose));
         scorePreload.setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading());
-        scorePreload.setHeadingConstraint(headingConstraint);
 
         grabPickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(scorePose, pickup1Pose))
@@ -92,32 +118,37 @@ public class AutoRedWall extends LinearOpMode {
         scorePickup1 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup1Pose, scorePose2))
                 .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose2.getHeading())
-                .setHeadingConstraint(headingConstraint)
                 .build();
 
         grabPickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose2, pickup2Pose))
+                .addPath(new BezierLine(scorePose, pickup2Pose))
                 .setLinearHeadingInterpolation(scorePose.getHeading(), pickup2Pose.getHeading())
                 .build();
 
         scorePickup2 = follower.pathBuilder()
                 .addPath(new BezierLine(pickup2Pose, scorePose2))
-                .setLinearHeadingInterpolation(pickup2Pose.getHeading(), scorePose.getHeading())
+                .setLinearHeadingInterpolation(pickup2Pose.getHeading(), scorePose2.getHeading())
                 .build();
 
         grabPickup3 = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose, pickup3Pose))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), pickup3Pose.getHeading())
+                .addPath(new BezierLine(scorePose2, pickup3Pose))
+                .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup3Pose.getHeading())
                 .build();
 
         scorePickup3 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup3Pose, scorePose))
-                .setLinearHeadingInterpolation(pickup3Pose.getHeading(), scorePose.getHeading())
+                .addPath(new BezierLine(pickup3Pose, scorePose2))
+                .setLinearHeadingInterpolation(pickup3Pose.getHeading(), scorePose2.getHeading())
                 .build();
     }
 
     @Override
     public void runOpMode() throws InterruptedException {
+        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+        odo.setOffsets(140, 0, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
+        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
+        odo.resetPosAndIMU();
+
         fL = hardwareMap.get(DcMotorEx.class, "fL");
         bL = hardwareMap.get(DcMotorEx.class, "bL");
         fR = hardwareMap.get(DcMotorEx.class, "fR");
@@ -125,47 +156,50 @@ public class AutoRedWall extends LinearOpMode {
         fwl = hardwareMap.get(DcMotorEx.class, "fwl");
         fwr = hardwareMap.get(DcMotorEx.class, "fwr");
         intake1 = hardwareMap.get(DcMotor.class, "intake1");
-        sorting1 = hardwareMap.get(Servo.class, "sorting1");
-        sorting2 = hardwareMap.get(Servo.class, "sorting2");
-        limelightmount = hardwareMap.get(Servo.class, "limelightmount");
+        intake2 = hardwareMap.get(DcMotor.class, "intake2");
+        flick1 = hardwareMap.get(Servo.class, "flick1");
+        flick2 = hardwareMap.get(Servo.class, "flick2");
+        flick3 = hardwareMap.get(Servo.class, "flick3");
+        grant = hardwareMap.get(Servo.class, "grant");
+        turret = hardwareMap.get(CRServo.class, "turret");
+        axonEncoder = hardwareMap.get(AnalogInput.class, "encoder");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.pipelineSwitch(1);
         limelight.start();
-        colorSensor = hardwareMap.get(ColorSensor.class, "colorSensor");
+        cs1a = hardwareMap.get(ColorSensor.class, "cs1a");
+        cs1b = hardwareMap.get(ColorSensor.class, "cs1b");
+        cs2a = hardwareMap.get(ColorSensor.class, "cs2a");
+        cs2b = hardwareMap.get(ColorSensor.class, "cs2b");
+        cs3a = hardwareMap.get(ColorSensor.class, "cs3a");
+        cs3b = hardwareMap.get(ColorSensor.class, "cs3b");
 
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
-        odo.setOffsets(-175.0, 60, DistanceUnit.MM); //these are tuned for 3110-0002-0001 Product Insight #1
-        odo.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-        odo.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.REVERSED);
-        odo.resetPosAndIMU();
+        //        FLYWHEEL
+        imu = hardwareMap.get(IMU.class, "imu");
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
 
         fL.setDirection(DcMotor.Direction.FORWARD);
         fL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        fL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         bL.setDirection(DcMotor.Direction.FORWARD);
         bL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        bL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         fR.setDirection(DcMotor.Direction.REVERSE);
         fR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        fR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         bR.setDirection(DcMotor.Direction.REVERSE);
         bR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        bR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        fwl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        fwr.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        fwl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        fwr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        fwl.setDirection(DcMotor.Direction.FORWARD);
-        fwr.setDirection(DcMotor.Direction.REVERSE);
+        fwl.setDirection(DcMotor.Direction.REVERSE);
+        fwr.setDirection(DcMotor.Direction.FORWARD);
 
-        // Send telemetry message to indicate successful Encoder reset
-        telemetry.addData("Starting at",  "%7d :%7d",
-                fL.getCurrentPosition(),
-                bR.getCurrentPosition());
-        telemetry.update();
+        for (DcMotor m : new DcMotor[]{fL, fR, bL, bR}) {
+            m.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
 
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
@@ -173,65 +207,172 @@ public class AutoRedWall extends LinearOpMode {
         follower.setStartingPose(startPose);
 
         waitForStart();
-        pid.setSetpoint(autoFwSpeed);
+        pid.setSetpoint(autoCloseFwSpeed);
+        grant.setPosition(0.02);
+        flick1.setPosition(flicksDown[0]);
+        flick2.setPosition(flicksDown[1]);
+        flick3.setPosition(flicksDown[2]);
+        new Thread(()->{
+            sleep(3500);
+            needPattern = false;
+        }).start();
         new Thread(()->{
             while (opModeIsActive()){
                 fwOn();
             }
         }).start();
 
-        while (opModeIsActive() && needPattern){
-            checkPattern();
-            sorting1.setPosition(suzani[servoIndex]);
-            lastPos = suzani[servoIndex];
-        }
+        new Thread(()->{
+            while (opModeIsActive()){
+                if (sweep){
+                    moveTurret();
+                } else {
+                    turret.setPower(0);
+                }
+            }
+        }).start();
 
-        // --------- STEP 1: SCORE PRELOAD ----------
-        follower.followPath(scorePreload);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
-        sleep(100);
-        headingCorrect(scorePose.getHeading());
-        sleep(100);
-        outtake();
-        // --------- STEP 2: GRAB PICKUP 1 ----------
-        follower.followPath(grabPickup1, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            fwOn();
-            follower.update();
-            shoot = false;
-        }
-        sleep(100);
-        headingCorrect(pickup1Pose.getHeading());
-        sleep(500);
-        intakeMacro();
-        sleep(500);
-        // --------- STEP 3: SCORE PICKUP 1 ----------
-        follower.followPath(scorePickup1, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-        }
-        sleep(100);
-        headingCorrect(scorePose2.getHeading());
-        sleep(100);
-//        xCorrect(scorePose2.getX());
+//         --------- STEP 1: SCORE PRELOAD ----------
+        sleep(1500);
         outtake();
         sleep(500);
-
+        outtake();
+        sweep = false;
         // --------- STEP 4: GRAB PICKUP 2 ----------
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
+            sweep = false;
             follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        intakeMacroFar();
+//
+        // --------- STEP 5: SCORE PICKUP 2 ----------
+        follower.followPath(scorePickup2, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            sweep = false;
+            reverseIntake();
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        intake1.setPower(0);
+        intake2.setPower(0);
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        sweep = true;
+        outtake();
+        sleep(500);
+        outtake();
+        sweep = false;
+//
+        // --------- STEP 6: GRAB PICKUP 3 ----------
+        follower.followPath(grabPickup3, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        intakeMacroFar();
+//
+//        // --------- STEP 7: SCORE PICKUP 3 ----------
+//        follower.followPath(scorePickup3, true);
+//        while (opModeIsActive() && follower.isBusy()) {
+//            follower.update();
+//            telemetry.addLine("Following path");
+//            telemetry.update();
+//        }
+//        telemetry.addLine("Path finished");
+//        telemetry.update();
+//        outtake();
+    }
+
+    private void outtake() {
+        if (!outtaking) {
+            if (limelight.getLatestResult() == null) {
+                while (limelight.getLatestResult() == null) {
+
+                }
+                sleep(500);
+            }
+            outtaking = true;
+            shooting = true;
+            double counter = 0;
+            for (String targetColor : pattern) {
+                counter += 1;
+                if (counter == 2){
+                    targetVelocity = 820;
+                } else {
+                    targetVelocity = 840;
+                }
+                boolean launched = false;
+                checkColor();
+                for (int i = 0; i < slotColors.length; i++) {
+                    if (slotColors[i].equalsIgnoreCase(targetColor)) {
+                        if (i == 0) {
+                            flick1.setPosition(flicksUp[0]);
+                        } else if (i == 1) {
+                            flick2.setPosition(flicksUp[1]);
+                        } else if (i == 2) {
+                            flick3.setPosition(flicksUp[2]);
+                        }
+                        launched = true;
+                        break;
+                    }
+                }
+                if (!launched) {
+                    for (int i = 0; i < slotColors.length; i++) {
+                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")) {
+                            if (i == 0) {
+                                flick1.setPosition(flicksUp[0]);
+                            } else if (i == 1) {
+                                flick2.setPosition(flicksUp[1]);
+                            } else if (i == 2) {
+                                flick3.setPosition(flicksUp[2]);
+                            }
+                            launched = true;
+                            break;
+                        }
+                    }
+                }
+                if (launched) {
+
+                    sleep(300);
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+                    for (int i = 0; i < slotColors.length; i++) {
+                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")) {
+                            if (i == 0) {
+                                flick1.setPosition(flicksUp[0]);
+                            } else if (i == 1) {
+                                flick2.setPosition(flicksUp[1]);
+                            } else if (i == 2) {
+                                flick3.setPosition(flicksUp[2]);
+                            }
+                            break;
+
+                        }
+
+                    }
+                    flick1.setPosition(flicksDown[0]);
+                    flick2.setPosition(flicksDown[1]);
+                    flick3.setPosition(flicksDown[2]);
+                    if (counter < 3) {
+                        sleep(300);
+                    }
+                }
+            }
+            outtaking = false;
+            shooting = false;
         }
     }
 
-    public void off(){
-        fL.setPower(0);
-        bL.setPower(0);
-        bR.setPower(0);
-        fR.setPower(0);
-    }
     private void checkPattern() {
         limelight.pipelineSwitch(0);
         LLResult result = limelight.getLatestResult();
@@ -241,7 +382,6 @@ public class AutoRedWall extends LinearOpMode {
             for (LLResultTypes.FiducialResult fr : fiducialResults) {
                 tagId = fr.getFiducialId();
             }
-
             if (tagId == 21) {
                 pattern[0] = "green";
                 pattern[1] = "purple";
@@ -267,151 +407,165 @@ public class AutoRedWall extends LinearOpMode {
         }
     }
 
-    private void outtake() {
-        sorting2.setPosition(wackDown);
-        List<Double> servoSequence = new ArrayList<>();
-        boolean[] used = new boolean[slotColors.length];
-        for (String targetColor : pattern) {
-            for (int i = 0; i < slotColors.length; i++) {
-                if (!used[i] && slotColors[i].equalsIgnoreCase(targetColor)) {
-                    servoSequence.add(suzano[i]);  // add servo position corresponding to that slot
-                    used[i] = true;                // mark slot as used
-                    break;                         // move on to next pattern color
+    private void moveTurret() {
+        double currentVoltage = axonEncoder.getVoltage();
+        double currentServoAngle = (currentVoltage / MAX_VOLTAGE) * 360.0;
+        double threshold = MAX_VOLTAGE / 2.0;
+        if (currentVoltage - lastVoltage < -threshold) {
+            rotationCount++;
+        } else if (currentVoltage - lastVoltage > threshold) {
+            rotationCount--;
+        }
+        lastVoltage = currentVoltage;
+        double totalServoDegrees = (rotationCount * 360.0) + currentServoAngle;
+        double turretAngle = totalServoDegrees / GEAR_RATIO;
+
+        limelight.pipelineSwitch(1);
+        double outputPower = 0;
+        double tx = 0;
+        boolean locked = false;
+
+        LLResult result = limelight.getLatestResult();
+        if (result != null && result.isValid()) {
+            for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                if (tag.getFiducialId() == targetTagID) {
+                    tx = tag.getTargetXDegrees();
+                    lastDirection = Math.signum(tx)*1;
+                    locked = true;
+                    break;
                 }
             }
         }
-        for (int i = 0; i < slotColors.length; i++) {
-            if (!used[i]) {
-                servoSequence.add(suzano[i]);
-                used[i] = true;
+        if (Math.abs(turretAngle) > MAX_TURRET_ANGLE || !locked){
+            if (turretAngle >= MAX_TURRET_ANGLE) {
+                lastDirection = -1;
+            } else if (turretAngle <= MIN_TURRET_ANGLE) {
+                lastDirection = 1;
+            }
+            turretPower = 0.99*lastDirection;
+            turret.setPower(turretPower);
+        }
+        else if (locked) {
+            double error = tx-2;
+            double dt = timer.seconds();
+            if (dt == 0) dt = 0.001; // Safety
+
+            double errorRate = (error - lastError) / dt;
+            errorRate = Range.clip(errorRate, -100, 100);
+
+            double pTerm = turretkP * error;
+            double dTerm = turretkD * errorRate;
+            double fTerm = 0;
+            if (Math.abs(error) > 3.0) {  // degrees
+                fTerm = Math.signum(error) * turretkF;
+            }
+            outputPower = pTerm + dTerm + fTerm;
+            lastError = error;
+            timer.reset();
+            if (Math.abs(error) > 1) {
+                turret.setPower(Range.clip(outputPower, -0.75, 0.75));
+            } else {
+                turret.setPower(0);
             }
         }
-
-//        if (count > 0){
-//            servoSequence.removeIf(pos -> pos == suzano[2]);
+//        if (needPattern){
+//            checkPattern();
 //        }
-        for (int i = 0; i < servoSequence.size(); i++) {
-            telemetry.addData("slot 0", slotColors[0]);
-            telemetry.addData("slot 1", slotColors[1]);
-            telemetry.addData("slot 1", slotColors[2]);
-            telemetry.update();
-
-            double servoPos = servoSequence.get(i);
-            sorting1.setPosition(servoPos);
-            if (opModeIsActive()) {
-                if (Math.abs(lastPos - servoPos) > 0.4) {
-                    sleep(2000);
-                } else {
-                    sleep(1000);
-                }
-                if (opModeIsActive()) {
-                    sorting2.setPosition(wackUp);
-                    sleep(450);
-                    sorting2.setPosition(wackDown);
-                    sleep(200);
-                    lastPos = servoPos;
-                }
-            }
-        }
-        servoIndex=0;
-        slotColors[0] = "Empty";
-        slotColors[1] = "Empty";
-        slotColors[2] = "Empty";
     }
 
-    private void intakeMacro(){
-        count += 1;
-        lateral=0;
-        yaw=0;
-        servoIndex = 0;
+    private void intakeMacroClose(){
         intakeDone = false;
         new Thread(()->{
             while (!intakeDone){
                 intake();
-                telemetry.addLine("INTAKING");
             }
+            intake1.setPower(0);
+            intake2.setPower(0);
         }).start();
-
-        double initialMove = 1;
-        driveRelativeX(initialMove);
-        sleep(200);
-        driveRelativeX(-initialMove);
-        driveRelativeY(-4);
-        driveRelativeX(initialMove);
-        driveRelativeX(-initialMove);
-        sleep(500);
         new Thread(()->{
-            sleep(1000);
+            sleep(3500);
             intakeDone = true;
         }).start();
+        driveRelativeX(43);
+    }
+    private void intakeMacroFar(){
+        intakeDone = false;
+        new Thread(()->{
+            while (!intakeDone){
+                intake();
+            }
+            intake1.setPower(0);
+            intake2.setPower(0);
+        }).start();
+        new Thread(()->{
+            sleep(2700);
+            intakeDone = true;
+        }).start();
+        driveRelativeX(1);
+        driveRelativeY(-5);
     }
 
     private void intake() {
-        String ballColor = checkColor();  // Get current detected color
-        sorting1.setPosition(suzani[servoIndex]);
-        lastPos = suzani[servoIndex];
-        telemetry.addData("Intake ready", intakeReady);
-
-        intake1.setDirection(DcMotor.Direction.REVERSE);
-        if (ballColor.equals("Unknown")) {
-            intake1.setPower(intakeSpeed);
-            lastBallColor = "Unknown";
-        } else if (intakeReady) {
-            intake1.setPower(0);
-            intakeReady = false;
-//            ballColor = checkColor();
-            lastBallColor = ballColor;
-            // Store color in current slot
-            slotColors[servoIndex] = ballColor;
-
-            new Thread(() -> {
-                sleep(10);
-                if (servoIndex < 2) {
-                    servoIndex++;
-                    sorting1.setPosition(suzani[servoIndex]);
-                } else {
-                    intakeDone = true;
-                }
-                lastPos = suzani[servoIndex];
-                sleep(1000);
-                intakeReady = true;
-            }).start();
-        }
+        intake1.setDirection(DcMotor.Direction.FORWARD);
+        intake1.setPower(intakeSpeed);
+        intake2.setDirection(DcMotor.Direction.REVERSE);
+        intake2.setPower(intakeSpeed);
     }
 
-    private String checkColor() {
-        double red = colorSensor.red();
-        double green = colorSensor.green();
-        double blue = colorSensor.blue();
+    private void reverseIntake() {
+        intake1.setDirection(DcMotor.Direction.REVERSE);
+        intake1.setPower(intakeSpeed);
+        intake2.setDirection(DcMotor.Direction.FORWARD);
+        intake2.setPower(intakeSpeed);
+    }
+
+    private void checkColor() {
+        double tolerance = 0.07;
         purpleBall = normalizeColor(purpleBall);
         greenBall = normalizeColor(greenBall);
+        slotColors[0] = "Empty";
+        slotColors[1] = "Empty";
+        slotColors[2] = "Empty";
 
-        telemetry.addData("Red", red);
-        telemetry.addData("Green", green);
-        telemetry.addData("Blue", blue);
+        double[] rgb1a = normalizeColor(new double[]{cs1a.red(), cs1a.green(), cs1a.blue()});
+        double[] rgb1b = normalizeColor(new double[]{cs1b.red(), cs1b.green(), cs1b.blue()});
+        double[] rgb2a = normalizeColor(new double[]{cs2a.red(), cs2a.green(), cs2a.blue()});
+        double[] rgb2b = normalizeColor(new double[]{cs2b.red(), cs2b.green(), cs2b.blue()});
+        double[] rgb3a = normalizeColor(new double[]{cs3a.red(), cs3a.green(), cs3a.blue()});
+        double[] rgb3b = normalizeColor(new double[]{cs3b.red(), cs3b.green(), cs3b.blue()});
+//        telemetry.addData("Red", cs1a.red());
+//        telemetry.addData("Green", cs1a.green());
+//        telemetry.addData("Blue", cs1a.blue());
 
-        // Normalize input
-        double sum = red + green + blue;
-        if (sum > 0) {
-            red /= sum;
-            green /= sum;
-            blue /= sum;
-        }
+        // Check Slot 1
+        double pdist = colorDistance(rgb1a, purpleBall);
+        double gdist = colorDistance(rgb1a, greenBall);
+        double pdist2 = colorDistance(rgb1b, purpleBall);
+        double gdist2 = colorDistance(rgb1b, greenBall);
+        if ((pdist < gdist && pdist < tolerance) || (pdist2 < gdist2 && pdist2 < tolerance))
+            slotColors[0] = "Purple";
+        else if (gdist < pdist && gdist < tolerance || (gdist2 < pdist2 && gdist2 < tolerance))
+            slotColors[0] = "Green";
 
-        // Compare with *normalized* reference colors
-        double purpleDistance = colorDistance(new double[]{red, green, blue}, purpleBall);
-        double greenDistance = colorDistance(new double[]{red, green, blue}, greenBall);
+        // Check Slot 2
+        pdist = colorDistance(rgb2a, purpleBall);
+        gdist = colorDistance(rgb2a, greenBall);
+        pdist2 = colorDistance(rgb2b, purpleBall);
+        gdist2 = colorDistance(rgb2b, greenBall);
+        if ((pdist < gdist && pdist < tolerance) || (pdist2 < gdist2 && pdist2 < tolerance))
+            slotColors[1] = "Purple";
+        else if (gdist < pdist && gdist < tolerance || (gdist2 < pdist2 && gdist2 < tolerance))
+            slotColors[1] = "Green";
 
-        String detected = "Unknown";
-        double tolerance = 0.06;  // tuned for normalized distances
-
-        if (purpleDistance < greenDistance && purpleDistance < tolerance)
-            detected = "Purple";
-        else if (greenDistance < purpleDistance && greenDistance < tolerance)
-            detected = "Green";
-
-        telemetry.addData("Detected", detected);
-        return detected;
+        // Check Slot 3
+        pdist = colorDistance(rgb3a, purpleBall);
+        gdist = colorDistance(rgb3a, greenBall);
+        pdist2 = colorDistance(rgb3b, purpleBall);
+        gdist2 = colorDistance(rgb3b, greenBall);
+        if ((pdist < gdist && pdist < tolerance) || (pdist2 < gdist2 && pdist2 < tolerance))
+            slotColors[2] = "Purple";
+        else if (gdist < pdist && gdist < tolerance || (gdist2 < pdist2 && gdist2 < tolerance))
+            slotColors[2] = "Green";
     }
 
     private double[] normalizeColor(double[] rgb) {
@@ -423,218 +577,86 @@ public class AutoRedWall extends LinearOpMode {
         return Math.sqrt(Math.pow(c1[0] - c2[0], 2) + Math.pow(c1[1] - c2[1], 2) + Math.pow(c1[2] - c2[2], 2));
     }
 
-    // Robust heading correction (drop into your class). targetHeadingRad is radians.
-    private void headingCorrect(double targetHeadingRad) {
-        final double kP = 0.012;         // tune: proportional gain (start small)
-        final double yawTolRad = Math.toRadians(2.0);  // stop within ~1 degree
-        final double maxPower = 0.3;    // max wheel power used for rotation (tune)
-        final long timeoutMs = 10500;     // safety timeout in ms
-
-        // get current time for timeout
-        long start = System.currentTimeMillis();
-
-        while (opModeIsActive()) {
-            // timeout safety
-            if (System.currentTimeMillis() - start > timeoutMs) {
-                telemetry.addData("headingCorrect", "timeout");
-                break;
-            }
-
-            // update odometry
-            odo.update();
-            Pose2D pos = odo.getPosition();
-            double currYaw = pos.getHeading(AngleUnit.RADIANS);
-
-            // shortest angular error: target - current normalized to [-pi, pi]
-            double yawErr = Math.atan2(Math.sin(targetHeadingRad - currYaw),
-                    Math.cos(targetHeadingRad - currYaw));
-
-            // stop condition
-            if (Math.abs(yawErr) <= yawTolRad) {
-                break;
-            }
-
-            // P controller -> wheel power (sign convention: positive yawErr => rotate positive)
-            double power = -kP * yawErr;
-            // clip and ensure minimum deadband
-            power = Math.max(-maxPower, Math.min(maxPower, power));
-
-            // If power is very small, push it to a minimum to overcome static friction
-            double minPower = 0.1;
-            if (Math.abs(power) > 0 && Math.abs(power) < minPower) {
-                power = Math.copySign(minPower, power);
-            }
-
-            telemetry.addData("target", Math.toDegrees(targetHeadingRad));
-            telemetry.addData("yaw", Math.toDegrees(currYaw));
-            telemetry.addData("error", Math.toDegrees(yawErr));
-            telemetry.update();
-
-            fL.setPower(power);
-            fR.setPower(-power);
-            bL.setPower(power);
-            bR.setPower(-power);
-
-            sleep(12);
-        }
-
-        // stop motors and clear flag
-        fL.setPower(0);
-        fR.setPower(0);
-        bL.setPower(0);
-        bR.setPower(0);
-        telemetry.addLine("headingCorrect done");
-        telemetry.update();
-    }
-    private void xCorrect(double targetXInches) {
-        final double kP = 0.08;              // Proportional gain: tune until it moves smoothly
-        final double xTolInches = 0.5;       // Stop within half an inch
-        final double maxPower = 0.4;         // Cap the speed for accuracy
-        final long timeoutMs = 3000;         // 3 second safety timeout
-
-        long start = System.currentTimeMillis();
-
-        while (opModeIsActive()) {
-            // Timeout safety
-            if (System.currentTimeMillis() - start > timeoutMs) {
-                telemetry.addData("xCorrect", "timeout");
-                break;
-            }
-
-            // Update odometry
-            odo.update();
-            Pose2D pos = odo.getPosition();
-            double currX = pos.getX(DistanceUnit.INCH);
-
-            // Calculate error
-            double xErr = targetXInches - currX;
-
-            // Stop condition
-            if (Math.abs(xErr) <= xTolInches) {
-                break;
-            }
-
-            // P controller for power
-            double power = xErr * kP;
-
-            // Clip to max power and add a minimum "deadband" push to overcome friction
-            power = Math.max(-maxPower, Math.min(maxPower, power));
-            double minPower = 0.12;
-            if (Math.abs(power) > 0 && Math.abs(power) < minPower) {
-                power = Math.copySign(minPower, power);
-            }
-
-            telemetry.addData("X Target", targetXInches);
-            telemetry.addData("X Current", currX);
-            telemetry.addData("X Error", xErr);
-            telemetry.update();
-
-            // For Mecanum: To move Forward/Back, all wheels spin together
-            // Note: Check your motor directions; based on your setup,
-            // you might need to flip the signs here.
-            fL.setPower(power);
-            fR.setPower(power);
-            bL.setPower(power);
-            bR.setPower(power);
-
-            sleep(10);
-        }
-
-        // Stop motors
-        fL.setPower(0);
-        fR.setPower(0);
-        bL.setPower(0);
-        bR.setPower(0);
-    }
-
     public void driveRelativeX(double inches) {
-        // Update odometry to get starting pose
         odo.update();
         double startX = odo.getPosition().getX(DistanceUnit.INCH);   // inches
         double targetX = startX + inches;
+        boolean movingPositive = inches > 0;
         // Loop until we reach target or timeout
-        while (opModeIsActive()) {
+        while (opModeIsActive() && !intakeDone) {
             odo.update();
             double currentX = odo.getPosition().getX(DistanceUnit.INCH);
             double error = targetX - currentX;
 
             // Stop when close enough
-            if (Math.abs(error) < 0.2) {
-                break;
+            telemetry.addData("Current X", currentX);
+            telemetry.addData("Target X", targetX);
+            if (movingPositive) {
+                if (currentX >= targetX) break;
+            } else {
+                if (currentX <= targetX) break;
             }
-
-            // Scale power as you approach the target (smooth stop)
-            double power = 0.1*Math.signum(error);   // apply sign
+            double power = 0.28 * Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);
             bL.setPower(power);
             bR.setPower(power);
         }
-
-        // Stop the robot
-        fL.setPower(0);
-        fR.setPower(0);
-        bL.setPower(0);
-        bR.setPower(0);
     }
 
     public void driveRelativeY(double inches) {
-        // Update odometry to get starting pose
         odo.update();
-        double startY = odo.getPosition().getY(DistanceUnit.INCH);   // inches
+        double startY = odo.getPosition().getY(DistanceUnit.INCH);
         double targetY = startY + inches;
-        // Loop until we reach target or timeout
-        while (opModeIsActive()) {
+
+        // Determine direction so we can stop correctly
+        boolean movingPositive = inches > 0;
+
+        while (opModeIsActive() && !intakeDone) {
             odo.update();
             double currentY = odo.getPosition().getY(DistanceUnit.INCH);
             double error = targetY - currentY;
 
-            // Stop when close enough
-            if (Math.abs(error) < 0.2) {
-                break;
+            telemetry.addData("Current Y", currentY);
+            telemetry.addData("Target Y", targetY);
+            telemetry.update();
+
+            // Exit condition: check if we've reached or passed the target
+            if (movingPositive) {
+                if (currentY >= targetY) break;
+            } else {
+                if (currentY <= targetY) break;
             }
 
-            // Scale power as you approach the target (smooth stop)
-            double power = -0.1*Math.signum(error);   // apply sign
-            // Mecanum pure strafe
+            double power = -0.4 * Math.signum(error); // Strafing usually requires more power to overcome friction
+
+            // Mecanum Strafe Pattern
+            // Left Front and Right Back go one way; Right Front and Left Back go the other.
             fL.setPower(power);
             fR.setPower(-power);
             bL.setPower(-power);
             bR.setPower(power);
         }
-
-        // Stop the robot
-        fL.setPower(0);
-        fR.setPower(0);
-        bL.setPower(0);
-        bR.setPower(0);
     }
 
-
-
-
     private void fwOn(){
-        double leftVelocity  = fwl.getVelocity();
+        //limelight stuff
+        double leftVelocity = fwl.getVelocity();
         double rightVelocity = fwr.getVelocity();
+        telemetry.addData("Left velocity", leftVelocity);
+        telemetry.addData("Right velocity", rightVelocity);
         double avgVelocity = (leftVelocity + rightVelocity) / 2.0;
 
+        pid.setSetpoint(targetVelocity);
         double pidOutput = pid.update(avgVelocity);
         // Feedforward based on max motor velocity
-        double feedforward = autoFwSpeed / MAX_VELOCITY;
+        double feedforward = targetVelocity / MAX_VELOCITY;
         pidOutput += feedforward;
-
-        // Clip to [0,1]
         pidOutput = Math.max(0, Math.min(pidOutput, 1));
+
         fwl.setPower(pidOutput);
         fwr.setPower(pidOutput);
-        odo.update();
-        Pose2D pos = odo.getPosition();
-//
-//        telemetry.addData("slot 0", slotColors[0]);
-//        telemetry.addData("slot 1", slotColors[1]);
-//        telemetry.addData("slot 2", slotColors[2]);
-//        telemetry.update();
     }
 
     private void fwOff(){

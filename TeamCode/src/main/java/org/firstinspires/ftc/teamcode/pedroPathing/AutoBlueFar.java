@@ -18,6 +18,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -55,6 +56,7 @@ public class AutoBlueFar extends LinearOpMode {
     private DcMotorEx fwl = null;
     private DcMotorEx fwr = null;
     private DcMotor intake1 = null;
+    private DcMotor intake2 = null;
     private Servo flick1 = null;
     private Servo flick2 = null;
     private Servo flick3 = null;
@@ -153,6 +155,7 @@ public class AutoBlueFar extends LinearOpMode {
         fwl = hardwareMap.get(DcMotorEx.class, "fwl");
         fwr = hardwareMap.get(DcMotorEx.class, "fwr");
         intake1 = hardwareMap.get(DcMotor.class, "intake1");
+        intake2 = hardwareMap.get(DcMotor.class, "intake2");
         flick1 = hardwareMap.get(Servo.class, "flick1");
         flick2 = hardwareMap.get(Servo.class, "flick2");
         flick3 = hardwareMap.get(Servo.class, "flick3");
@@ -254,6 +257,7 @@ public class AutoBlueFar extends LinearOpMode {
             telemetry.update();
         }
         intake1.setPower(0);
+        intake2.setPower(0);
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -281,6 +285,7 @@ public class AutoBlueFar extends LinearOpMode {
             telemetry.update();
         }
         intake1.setPower(0);
+        intake2.setPower(0);
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -489,6 +494,7 @@ public class AutoBlueFar extends LinearOpMode {
                 intake();
             }
             intake1.setPower(0);
+            intake2.setPower(0);
         }).start();
         new Thread(()->{
             sleep(4000);
@@ -503,6 +509,7 @@ public class AutoBlueFar extends LinearOpMode {
                 intake();
             }
             intake1.setPower(0);
+            intake2.setPower(0);
         }).start();
         new Thread(()->{
             sleep(5000);
@@ -516,11 +523,15 @@ public class AutoBlueFar extends LinearOpMode {
     private void intake() {
         intake1.setDirection(DcMotor.Direction.FORWARD);
         intake1.setPower(intakeSpeed);
+        intake2.setDirection(DcMotor.Direction.REVERSE);
+        intake2.setPower(intakeSpeed);
     }
 
     private void reverseIntake() {
         intake1.setDirection(DcMotor.Direction.REVERSE);
         intake1.setPower(intakeSpeed);
+        intake2.setDirection(DcMotor.Direction.FORWARD);
+        intake2.setPower(intakeSpeed);
     }
 
     private void checkColor() {
@@ -586,14 +597,17 @@ public class AutoBlueFar extends LinearOpMode {
         odo.update();
         double startX = odo.getPosition().getX(DistanceUnit.INCH);   // inches
         double targetX = startX + inches;
+        boolean movingPositive = inches > 0;
         // Loop until we reach target or timeout
         while (opModeIsActive() && !intakeDone) {
             odo.update();
             double currentX = odo.getPosition().getX(DistanceUnit.INCH);
             double error = targetX - currentX;
 
-            if (currentX < targetX) {
-                break;
+            if (movingPositive) {
+                if (currentX >= targetX) break;
+            } else {
+                if (currentX <= targetX) break;
             }
             double power = -0.28*Math.signum(error);   // apply sign
             // Mecanum pure strafe

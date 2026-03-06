@@ -34,18 +34,20 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "BLUE - Close",group="Robot")
-public class AutoBlueClose extends LinearOpMode {
+@Autonomous(name = "RED - Gate",group="Robot")
+public class AutoRedGate extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
-    private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
-    private final Pose scorePose = new Pose(58, 93, Math.toRadians(185));
-    private final Pose scorePose2 = new Pose(54, 91, Math.toRadians(185));
-    private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(185));
-    private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
-    private final Pose pickup3Pose = new Pose(50, 46, Math.toRadians(185));
+    private final Pose startPose = new Pose(127, 124, Math.toRadians(210));
+    private final Pose scorePose = new Pose(86, 96, Math.toRadians(352));
+    private final Pose scorePose2 = new Pose(86, 96, Math.toRadians(352));
+    private final Pose pickup1Pose = new Pose(90, 93, Math.toRadians(348));
+    private final Pose pickup2Pose = new Pose(90, 71, Math.toRadians(352));
+    private final Pose pickup3Pose = new Pose(90, 48, Math.toRadians(352));
+    private final Pose gatePose = new Pose(114, 80, Math.toRadians(262));
+
     private Path scorePreload;
-    private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
+    private PathChain grabPickup1, scorePickup1, hitGate, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
     //    NON PEDRO
     private ElapsedTime runtime = new ElapsedTime();
@@ -75,7 +77,6 @@ public class AutoBlueClose extends LinearOpMode {
     private String[] pattern = {"purple", "purple", "green"};
     private boolean sweepingForward = true;
     private boolean intakeReady = true;
-    private boolean sweep = true;
     private boolean needPattern = true;
     private boolean outtaking = false;
     private boolean wackSet = false;
@@ -90,13 +91,14 @@ public class AutoBlueClose extends LinearOpMode {
     private double lastVoltage = 0;
     private int rotationCount = 0;
     private double turretPower = 0.95;
-    private double targetTagID = 20;
-    private double lastDirection = 1; //move to right at start
+    private double targetTagID = 24;
+    private double lastDirection = -1; //move to the left at start
     double targetVelocity = 500;
     double lastError = 0;
     // Safety Limits (Degrees)
-    private static final double MAX_TURRET_ANGLE = 165;
-    private static final double MIN_TURRET_ANGLE = -165;
+    private static final double MAX_TURRET_ANGLE = 170;
+    private static final double MIN_TURRET_ANGLE = -170;
+    private boolean  sweep = true;
 
     //    FLYWHEEL
     PIDController pid = new PIDController(0.041, 0.0, 0.0);
@@ -119,9 +121,14 @@ public class AutoBlueClose extends LinearOpMode {
                 .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose2.getHeading())
                 .build();
 
+        hitGate = follower.pathBuilder()
+                .addPath(new BezierLine(scorePose2, gatePose))
+                .setLinearHeadingInterpolation(scorePose2.getHeading(), gatePose.getHeading())
+                .build();
+
         grabPickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose2, pickup2Pose))
-                .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup2Pose.getHeading())
+                .addPath(new BezierLine(gatePose, pickup2Pose))
+                .setLinearHeadingInterpolation(gatePose.getHeading(), pickup2Pose.getHeading())
                 .build();
 
         scorePickup2 = follower.pathBuilder()
@@ -250,6 +257,9 @@ public class AutoBlueClose extends LinearOpMode {
             telemetry.update();
         }
         telemetry.addLine("Path finished");
+        telemetry.addData("Slot 1", slotColors[0]);
+        telemetry.addData("Slot 2", slotColors[1]);
+        telemetry.addData("Slot 3", slotColors[2]);
         telemetry.update();
         intakeMacroClose();
         // --------- STEP 3: SCORE PICKUP 1 ----------
@@ -262,11 +272,6 @@ public class AutoBlueClose extends LinearOpMode {
         }
         intake1.setPower(0);
         intake2.setPower(0);
-        new Thread(()->{
-            sleep(500);
-            intake1.setPower(0);
-            intake2.setPower(0);
-        }).start();
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -275,6 +280,11 @@ public class AutoBlueClose extends LinearOpMode {
         outtake();
         sweep = false;
         // --------- STEP 4: GRAB PICKUP 2 ----------
+        follower.followPath(hitGate, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+        }
+        sleep(1000);
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
@@ -295,19 +305,11 @@ public class AutoBlueClose extends LinearOpMode {
         }
         intake1.setPower(0);
         intake2.setPower(0);
-        new Thread(()->{
-            sleep(500);
-            intake1.setPower(0);
-            intake2.setPower(0);
-        }).start();
-        telemetry.addLine("Path finished");
-        telemetry.update();
         sweep = true;
         outtake();
         sleep(500);
         outtake();
         sweep = false;
-
         // --------- STEP 6: GRAB PICKUP 3 ----------
         follower.followPath(grabPickup3, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -330,13 +332,13 @@ public class AutoBlueClose extends LinearOpMode {
         telemetry.update();
         sweep = true;
         outtake();
+        sleep(500);
+        outtake();
         sweep = false;
     }
 
     private void outtake() {
         if (!outtaking) {
-            intake1.setPower(0);
-            intake2.setPower(0);
             if (limelight.getLatestResult() == null){
                 while (limelight.getLatestResult() == null){
 
@@ -446,6 +448,7 @@ public class AutoBlueClose extends LinearOpMode {
             telemetry.addData("Pattern 0", pattern[0]);
             telemetry.addData("Pattern 1", pattern[1]);
             telemetry.addData("Pattern 2", pattern[2]);
+            telemetry.update();
         } else {
             telemetry.addLine("No valid AprilTag detected");
         }
@@ -523,7 +526,7 @@ public class AutoBlueClose extends LinearOpMode {
             while (!intakeDone){
                 intake();
             }
-            sleep(1000);
+            sleep(2000);
             intake1.setPower(0);
             intake2.setPower(0);
         }).start();
@@ -531,7 +534,7 @@ public class AutoBlueClose extends LinearOpMode {
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-22);
+        driveRelativeX(25);
     }
     private void intakeMacroFar(){
         intakeDone = false;
@@ -547,7 +550,7 @@ public class AutoBlueClose extends LinearOpMode {
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(-32);
+        driveRelativeX(30);
     }
 
     private void intake() {
@@ -556,21 +559,12 @@ public class AutoBlueClose extends LinearOpMode {
         intake2.setDirection(DcMotor.Direction.REVERSE);
         intake2.setPower(intakeSpeed);
     }
-
     private void reverseIntake() {
         intake1.setDirection(DcMotor.Direction.REVERSE);
         intake1.setPower(intakeSpeed);
         intake2.setDirection(DcMotor.Direction.FORWARD);
         intake2.setPower(intakeSpeed);
     }
-
-//    private boolean isIntakeFull() {
-//        checkColor();
-//        // Returns true only if all three slots are filled (not "Empty")
-//        return !slotColors[0].equalsIgnoreCase("Empty") &&
-//                !slotColors[1].equalsIgnoreCase("Empty") &&
-//                !slotColors[2].equalsIgnoreCase("Empty");
-//    }
 
     private void checkColor() {
         double tolerance = 0.07;
@@ -638,15 +632,30 @@ public class AutoBlueClose extends LinearOpMode {
         // Loop until we reach target or timeout
         while (opModeIsActive() && !intakeDone) {
             checkColor();
+
+//            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !shooting){
+//                new Thread(()-> {
+//                    fL.setPower(0);
+//                    fR.setPower(0);
+//                    bL.setPower(0);
+//                    bR.setPower(0);
+//                    grant.setPosition(0.5);
+//                    sleep(500);
+//                    grant.setPosition(0.02);
+//                    sleep(100);
+//                }).start();
+//            } else {
             odo.update();
             double currentX = odo.getPosition().getX(DistanceUnit.INCH);
             double error = targetX - currentX;
 
             // Stop when close enough
-            if (currentX < targetX) {
+            telemetry.addData("Current X", currentX);
+            telemetry.addData("Target X", targetX);
+            if (currentX>targetX) {
                 break;
             }
-            double power = -0.28*Math.signum(error);   // apply sign
+            double power = 0.28*Math.signum(error);   // apply sign
             // Mecanum pure strafe
             fL.setPower(power);
             fR.setPower(power);
@@ -670,9 +679,9 @@ public class AutoBlueClose extends LinearOpMode {
             Pose3D botpose = llResult.getBotpose();
             double camX  = -botpose.getPosition().x;
             double camY  = botpose.getPosition().y;
-            double distance = Math.sqrt(Math.pow((mtBlueX-camX), 2) + Math.pow((mtBlueY-camY),2));
+            double distance = Math.sqrt(Math.pow((mtRedX-camX), 2) + Math.pow((mtRedY-camY),2));
             targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
-            targetVelocity = targetVelocity * 1.05; //tweak if shooting to short or far
+            targetVelocity = targetVelocity * 1.08; //tweak if shooting to short or far
             targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
             telemetry.addData("Distance", distance);
             telemetry.addData("Target velocity", targetVelocity);

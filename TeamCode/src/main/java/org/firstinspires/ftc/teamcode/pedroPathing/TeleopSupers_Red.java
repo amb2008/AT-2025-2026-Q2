@@ -66,6 +66,7 @@ public class TeleopSupers_Red extends LinearOpMode {
     private DcMotorEx fwl = null;
     private DcMotorEx fwr = null;
     private DcMotor intake1 = null;
+    private DcMotor intake2 = null;
     private Servo flick1 = null;
     private Servo flick2 = null;
     private Servo flick3 = null;
@@ -87,6 +88,7 @@ public class TeleopSupers_Red extends LinearOpMode {
     private boolean outtaking = false;
     private boolean wackSet = false;
     private boolean driverLock = false;
+    private boolean far = false;
     private boolean up = false;
     double integralSum = 0;
     double lastError = 0;
@@ -143,6 +145,7 @@ public class TeleopSupers_Red extends LinearOpMode {
         fwl = hardwareMap.get(DcMotorEx.class, "fwl");
         fwr = hardwareMap.get(DcMotorEx.class, "fwr");
         intake1 = hardwareMap.get(DcMotor.class, "intake1");
+        intake2 = hardwareMap.get(DcMotor.class, "intake2");
         flick1 = hardwareMap.get(Servo.class, "flick1");
         flick2 = hardwareMap.get(Servo.class, "flick2");
         flick3 = hardwareMap.get(Servo.class, "flick3");
@@ -272,9 +275,12 @@ public class TeleopSupers_Red extends LinearOpMode {
             } else if (gamepad2.right_trigger > 0.1) {
                 intake1.setDirection(DcMotor.Direction.FORWARD);
                 intake1.setPower(intakeSpeed);
+                intake2.setDirection(DcMotor.Direction.REVERSE);
+                intake2.setPower(intakeSpeed);
             }
             else {
                 intake1.setPower(0);
+                intake2.setPower(0);
             }
 
             if (gamepad2.dpad_left){
@@ -419,6 +425,9 @@ public class TeleopSupers_Red extends LinearOpMode {
                 if (tag.getFiducialId() == targetTagID) {
                     tx = tag.getTargetXDegrees();
                     lastDirection = Math.signum(tx)*1;
+                    if (far){
+                        lastDirection -= Math.signum(tx)*1;
+                    }
                     locked = true;
                     break;
                 }
@@ -454,6 +463,9 @@ public class TeleopSupers_Red extends LinearOpMode {
         }
         else if (locked) {
             double error = tx;
+            if (far){
+                error -= 2;
+            }
             double dt = timer.seconds();
             if (dt == 0) dt = 0.001; // Safety
 
@@ -490,6 +502,8 @@ public class TeleopSupers_Red extends LinearOpMode {
         if (intakeReady) {
             intake1.setDirection(DcMotor.Direction.REVERSE);
             intake1.setPower(intakeSpeed);
+            intake2.setDirection(DcMotor.Direction.FORWARD);
+            intake2.setPower(intakeSpeed);
         }
     }
 
@@ -540,11 +554,15 @@ public class TeleopSupers_Red extends LinearOpMode {
                 if (counter<3){
                     sleep(300);
                 }
-//                if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
-//                    outtaking = false;
-//                    outtake(outPattern);
-//                    telemetry.addLine("Outtaking again!");
-//                }
+                if (counter == 1){
+                    sleep(200);
+                    checkColor();
+                    if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
+                        outtaking = false;
+                        outtake(outPattern);
+                        break;
+                    }
+                }
             }
             outtaking = false;
         }
@@ -619,6 +637,9 @@ public class TeleopSupers_Red extends LinearOpMode {
             targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
             if (targetVelocity > 700){
                 targetVelocity = 840;
+                far = true;
+            } else {
+                far = false;
             }
             telemetry.addData("Distance", distance);
             telemetry.addData("Target velocity", targetVelocity);

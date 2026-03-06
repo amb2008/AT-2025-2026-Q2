@@ -34,8 +34,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import java.util.ArrayList;
 import java.util.List;
 
-@Autonomous(name = "BLUE - Close",group="Robot")
-public class AutoBlueClose extends LinearOpMode {
+@Autonomous(name = "BLUE - GATE",group="Robot")
+public class AutoBlueGate extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
@@ -44,8 +44,9 @@ public class AutoBlueClose extends LinearOpMode {
     private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(185));
     private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
     private final Pose pickup3Pose = new Pose(50, 46, Math.toRadians(185));
+    private final Pose gatePose = new Pose(20, 80, Math.toRadians(275));
     private Path scorePreload;
-    private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
+    private PathChain grabPickup1, scorePickup1, hitGate, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
     //    NON PEDRO
     private ElapsedTime runtime = new ElapsedTime();
@@ -119,9 +120,14 @@ public class AutoBlueClose extends LinearOpMode {
                 .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose2.getHeading())
                 .build();
 
+        hitGate = follower.pathBuilder()
+                .addPath(new BezierLine(scorePose2, gatePose))
+                .setLinearHeadingInterpolation(scorePose2.getHeading(), gatePose.getHeading())
+                .build();
+
         grabPickup2 = follower.pathBuilder()
-                .addPath(new BezierLine(scorePose2, pickup2Pose))
-                .setLinearHeadingInterpolation(scorePose2.getHeading(), pickup2Pose.getHeading())
+                .addPath(new BezierLine(gatePose, pickup2Pose))
+                .setLinearHeadingInterpolation(gatePose.getHeading(), pickup2Pose.getHeading())
                 .build();
 
         scorePickup2 = follower.pathBuilder()
@@ -262,11 +268,6 @@ public class AutoBlueClose extends LinearOpMode {
         }
         intake1.setPower(0);
         intake2.setPower(0);
-        new Thread(()->{
-            sleep(500);
-            intake1.setPower(0);
-            intake2.setPower(0);
-        }).start();
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -274,7 +275,12 @@ public class AutoBlueClose extends LinearOpMode {
         sleep(500);
         outtake();
         sweep = false;
-        // --------- STEP 4: GRAB PICKUP 2 ----------
+        // --------- STEP 4: Hit Gate and GRAB PICKUP 2 ----------
+        follower.followPath(hitGate, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+        }
+        sleep(1000);
         follower.followPath(grabPickup2, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
@@ -295,11 +301,6 @@ public class AutoBlueClose extends LinearOpMode {
         }
         intake1.setPower(0);
         intake2.setPower(0);
-        new Thread(()->{
-            sleep(500);
-            intake1.setPower(0);
-            intake2.setPower(0);
-        }).start();
         telemetry.addLine("Path finished");
         telemetry.update();
         sweep = true;
@@ -514,6 +515,7 @@ public class AutoBlueClose extends LinearOpMode {
         }
         if (needPattern){
             checkPattern();
+            telemetry.addLine("Searching for pattern");
         }
     }
 
