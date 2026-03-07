@@ -24,7 +24,7 @@ public class CONSTANTS {
     public static final double mtRedY = 1.413;
 
 //    TURRET
-    public static final double turretkP = 0.012;
+    public static final double turretkP = 0.01;
     public static final double turretkI = 0.00;
     public static final double turretkD = 0.002;
     public static final double turretkF = 0.01;
@@ -32,12 +32,16 @@ public class CONSTANTS {
     //    static final double[] suzano = {0.67, 1, 0.3};
 //    Let third one be mirrored
     public static final double[] suzano = {0.75, 0.01, 0.38};
-    public static final double[] flicksDown = {0.84, 0.51, 0.84};
+    public static final double[] flicksDown = {0.84, 0.51, 0.83};
     public static final double[] flicksUp = {0.52, 0.83, 0.53};
     //    0.74  0.36  0
 //    0.16  0.53  0.91
     public static final double searchSpeed = 0.02;
-    public static double[] purpleBall = {145, 175, 250, 190};
+//    public static double[] purpleBall = {145, 175, 250, 190};
+    public static double[] purpleBall = {1947, 2420, 4061, 190};
+//    2160 2750, 4500
+//    1900 2380 4000
+
     public static double[] greenBall = {936, 3755, 2464, 103};
     //    BLUE
     public static final double blueX = 1.0;

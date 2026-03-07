@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Autonomous(name = "RED - Gate",group="Robot")
+@Disabled
 public class AutoRedGate extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;

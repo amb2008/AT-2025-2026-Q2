@@ -26,7 +26,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
  */
 
 @TeleOp(name = "Axon Encoder Test", group = "Test")
-@Disabled
+//@Disabled
 public class AxonEncoderTest extends OpMode {
 
     // Define hardware variables

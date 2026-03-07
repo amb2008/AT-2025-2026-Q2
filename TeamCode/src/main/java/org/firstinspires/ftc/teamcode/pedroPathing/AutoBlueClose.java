@@ -39,7 +39,7 @@ public class AutoBlueClose extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private Follower follower;
     private final Pose startPose = new Pose(17, 124, Math.toRadians(330));
-    private final Pose scorePose = new Pose(58, 93, Math.toRadians(185));
+    private final Pose scorePose = new Pose(58, 93, Math.toRadians(183));
     private final Pose scorePose2 = new Pose(54, 91, Math.toRadians(185));
     private final Pose pickup1Pose = new Pose(49.5, 91, Math.toRadians(185));
     private final Pose pickup2Pose = new Pose(50, 69, Math.toRadians(185));
@@ -309,6 +309,11 @@ public class AutoBlueClose extends LinearOpMode {
         sweep = false;
 
         // --------- STEP 6: GRAB PICKUP 3 ----------
+        new Thread(()->{
+            while (opModeIsActive()){
+                resetTurret();
+            }
+        }).start();
         follower.followPath(grabPickup3, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
@@ -318,19 +323,6 @@ public class AutoBlueClose extends LinearOpMode {
         telemetry.addLine("Path finished");
         telemetry.update();
         intakeMacroFar();
-
-        // --------- STEP 7: SCORE PICKUP 3 ----------
-        follower.followPath(scorePickup3, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            telemetry.addLine("Following path");
-            telemetry.update();
-        }
-        telemetry.addLine("Path finished");
-        telemetry.update();
-        sweep = true;
-        outtake();
-        sweep = false;
     }
 
     private void outtake() {
@@ -564,13 +556,33 @@ public class AutoBlueClose extends LinearOpMode {
         intake2.setPower(intakeSpeed);
     }
 
-//    private boolean isIntakeFull() {
-//        checkColor();
-//        // Returns true only if all three slots are filled (not "Empty")
-//        return !slotColors[0].equalsIgnoreCase("Empty") &&
-//                !slotColors[1].equalsIgnoreCase("Empty") &&
-//                !slotColors[2].equalsIgnoreCase("Empty");
-//    }
+    private void resetTurret(){
+        sweep = false;
+        double targetTurretAngle = 55;
+        double currentVoltage = axonEncoder.getVoltage();
+        double currentServoAngle = (currentVoltage / MAX_VOLTAGE) * 360.0;
+        double threshold = MAX_VOLTAGE / 2.0;
+        if (currentVoltage - lastVoltage < -threshold) {
+            rotationCount++;
+        } else if (currentVoltage - lastVoltage > threshold) {
+            rotationCount--;
+        }
+        lastVoltage = currentVoltage;
+        double totalServoDegrees = (rotationCount * 360.0) + currentServoAngle;
+        double turretAngle = totalServoDegrees / GEAR_RATIO;
+
+        if (Math.abs(turretAngle-targetTurretAngle)>4){
+            if (turretAngle >= targetTurretAngle) {
+                lastDirection = -1;
+            } else {
+                lastDirection = 1;
+            }
+            turretPower = 0.99*lastDirection;
+            turret.setPower(turretPower);
+        } else {
+            turret.setPower(0);
+        }
+    }
 
     private void checkColor() {
         double tolerance = 0.07;

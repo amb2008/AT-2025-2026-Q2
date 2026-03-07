@@ -295,6 +295,11 @@ public class AutoBlueFar extends LinearOpMode {
         sweep = false;
 //
         // --------- STEP 6: GRAB PICKUP 3 ----------
+        new Thread(()->{
+            while (opModeIsActive()){
+                resetTurret();
+            }
+        }).start();
         follower.followPath(grabPickup3, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
@@ -681,5 +686,33 @@ public class AutoBlueFar extends LinearOpMode {
     private void fwOff(){
         fwl.setVelocity(0);
         fwr.setVelocity(0);
+    }
+
+    private void resetTurret(){
+        sweep = false;
+        double targetTurretAngle = -96;
+        double currentVoltage = axonEncoder.getVoltage();
+        double currentServoAngle = (currentVoltage / MAX_VOLTAGE) * 360.0;
+        double threshold = MAX_VOLTAGE / 2.0;
+        if (currentVoltage - lastVoltage < -threshold) {
+            rotationCount++;
+        } else if (currentVoltage - lastVoltage > threshold) {
+            rotationCount--;
+        }
+        lastVoltage = currentVoltage;
+        double totalServoDegrees = (rotationCount * 360.0) + currentServoAngle;
+        double turretAngle = totalServoDegrees / GEAR_RATIO;
+
+        if (Math.abs(turretAngle-targetTurretAngle)>4){
+            if (turretAngle >= targetTurretAngle) {
+                lastDirection = -1;
+            } else {
+                lastDirection = 1;
+            }
+            turretPower = 0.99*lastDirection;
+            turret.setPower(turretPower);
+        } else {
+            turret.setPower(0);
+        }
     }
 }

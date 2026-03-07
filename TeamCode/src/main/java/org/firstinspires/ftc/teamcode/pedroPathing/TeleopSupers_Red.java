@@ -59,6 +59,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 public class TeleopSupers_Red extends LinearOpMode {
     GoBildaPinpointDriver odo;
     private ElapsedTime runtime = new ElapsedTime();
+    private ElapsedTime colorTimer = new ElapsedTime();
     private DcMotor fL = null;
     private DcMotor bL = null;
     private DcMotor fR = null;
@@ -90,6 +91,7 @@ public class TeleopSupers_Red extends LinearOpMode {
     private boolean driverLock = false;
     private boolean far = false;
     private boolean up = false;
+    private boolean sweep = true;
     double integralSum = 0;
     double lastError = 0;
 
@@ -107,6 +109,8 @@ public class TeleopSupers_Red extends LinearOpMode {
     private double lastDirection = 1;
     private double lastTurretAngle = 0;
     private double stuckTimer = 0;
+    private double counter = 0;
+    private double fwkp = 0.041;
     private static final double STUCK_ANGLE_THRESHOLD = 1;   // degrees
     private static final double STUCK_TIME_THRESHOLD = 0.2;    // seconds
 
@@ -117,11 +121,11 @@ public class TeleopSupers_Red extends LinearOpMode {
     private double lastVoltage = 0;
     private int rotationCount = 0;
     // Safety Limits (Degrees)
-    private static final double MAX_TURRET_ANGLE = 135;
-    private static final double MIN_TURRET_ANGLE = -135;
+    private static final double MAX_TURRET_ANGLE = 90;
+    private static final double MIN_TURRET_ANGLE = -90;
     //    FLYWHEEL
     private IMU imu;
-    PIDController pid = new PIDController(0.041, 0.0, 0.0);
+    PIDController pid = new PIDController(fwkp, 0.0, 0.0);
     final double MAX_MOTOR_RPM = 6000;      // GoBILDA 6000 RPM
     final double TICKS_PER_REV = 28;        // Encoder CPR
     final double MAX_VELOCITY = (MAX_MOTOR_RPM / 60.0) * TICKS_PER_REV; // ticks/sec
@@ -198,28 +202,18 @@ public class TeleopSupers_Red extends LinearOpMode {
         while (opModeIsActive()) {
             telemetry.addLine("AT is the best!");
             telemetry.update();
-            if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && slotColors[2].equalsIgnoreCase("Empty") && !outtaking){
-                new Thread(()-> {
-                    fL.setPower(0);
-                    fR.setPower(0);
-                    bL.setPower(0);
-                    bR.setPower(0);
-                    grant.setPosition(0.5);
-                    sleep(500);
-                    grant.setPosition(0.02);
-                    sleep(100);
-                    telemetry.addLine("Granted");
-                }).start();
-            }
             if (!fwoff){
                 fwOn();
             } else {
                 fwr.setPower(-0.3);
                 fwl.setPower(-0.3);
             }
-            moveTurret();
+            if (sweep){
+                moveTurret();
+            }
             if (!wackSet){
                 wackSet = true;
+                outtaking = false;
                 grant.setPosition(0.02);
                 flick1.setPosition(flicksDown[0]);
                 flick2.setPosition(flicksDown[1]);
@@ -269,6 +263,12 @@ public class TeleopSupers_Red extends LinearOpMode {
                 }).start();
             }
 
+            if (gamepad2.x) {
+                new Thread(()->{
+                    dumbOuttake();
+                }).start();
+            }
+
 //            GAMEPAD 2
             if (gamepad2.left_trigger > 0.1) {
                 intake();
@@ -281,6 +281,18 @@ public class TeleopSupers_Red extends LinearOpMode {
             else {
                 intake1.setPower(0);
                 intake2.setPower(0);
+            }
+
+            if (gamepad2.left_bumper){
+                turret.setPower(-0.99);
+                sweep = false;
+            } else if (gamepad2.right_bumper){
+                turret.setPower(0.99);
+                sweep = false;
+            }
+            if (gamepad2.left_bumper && gamepad2.right_bumper){
+                sweep = true;
+                rotationCount = 0;
             }
 
             if (gamepad2.dpad_left){
@@ -329,14 +341,16 @@ public class TeleopSupers_Red extends LinearOpMode {
                 }).start();
             }
 
-            if (!gamepad1.a && !gamepad1.b && !gamepad1.x && !gamepad1.y){
+            if (!gamepad1.a && !gamepad1.b && !gamepad1.x && !gamepad1.y && !gamepad2.right_bumper && !gamepad2.left_bumper){
                 aWasPressed = false;
             }
-            telemetry.addData("Flick 1 Pos", flick1.getPosition());
-            telemetry.addData("Flick 2 Pos", flick2.getPosition());
-            telemetry.addData("Flick 3 Pos", flick3.getPosition());
 
-            checkColor();
+
+            if (colorTimer.seconds() >= 0.5) {
+                checkColor();
+                colorTimer.reset(); // Restart the clock for the next 0.5s
+            }
+
             telemetry.addData("Slot 1", slotColors[0]);
             telemetry.addData("Slot 2", slotColors[1]);
             telemetry.addData("Slot 3", slotColors[2]);
@@ -347,6 +361,7 @@ public class TeleopSupers_Red extends LinearOpMode {
         double axial = gamepad1.left_stick_y;
         double lateral = -gamepad1.left_stick_x;
         double yaw = -gamepad1.right_stick_x;
+        yaw = Range.clip(yaw, -0.8, 0.8);
 
         if (gamepad1.dpad_up) {
             axial = -dpadSpeed;
@@ -424,9 +439,9 @@ public class TeleopSupers_Red extends LinearOpMode {
             for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
                 if (tag.getFiducialId() == targetTagID) {
                     tx = tag.getTargetXDegrees();
-                    lastDirection = Math.signum(tx)*1;
+                    lastDirection = Math.signum(tx+1)*1;
                     if (far){
-                        lastDirection -= Math.signum(tx)*1;
+                        lastDirection = Math.signum(tx+1)*1;
                     }
                     locked = true;
                     break;
@@ -457,14 +472,11 @@ public class TeleopSupers_Red extends LinearOpMode {
             }
             lastTurretAngle = turretAngle;
             timer.reset();
-            // ---
-            telemetry.addData("Last direction", lastDirection);
-            telemetry.addLine("SWEEPING");
         }
         else if (locked) {
-            double error = tx;
+            double error = tx+1;
             if (far){
-                error -= 2;
+                error += 3.5;
             }
             double dt = timer.seconds();
             if (dt == 0) dt = 0.001; // Safety
@@ -494,8 +506,6 @@ public class TeleopSupers_Red extends LinearOpMode {
             }
             telemetry.addLine("LOCKED");
         }
-        telemetry.addData("Angle", turretAngle);
-        telemetry.addData("Rotation count", rotationCount);
     }
 
     private void intake() {
@@ -510,7 +520,7 @@ public class TeleopSupers_Red extends LinearOpMode {
     private void outtake(String[] outPattern) {
         if (!outtaking) {
             outtaking = true;
-            double counter = 0;
+            counter = 0;
             for (String targetColor : outPattern) {
                 counter += 1;
                 boolean launched = false;
@@ -544,7 +554,7 @@ public class TeleopSupers_Red extends LinearOpMode {
                     }
                 }
                 if (launched){
-                    sleep(300);
+                    sleep(400);
                     flick1.setPosition(flicksDown[0]);
                     flick2.setPosition(flicksDown[1]);
                     flick3.setPosition(flicksDown[2]);
@@ -564,6 +574,34 @@ public class TeleopSupers_Red extends LinearOpMode {
                     }
                 }
             }
+            counter = 0;
+            outtaking = false;
+        }
+    }
+
+    private void dumbOuttake() {
+        if (!outtaking) {
+            outtaking = true;
+            counter = 1;
+            flick1.setPosition(flicksUp[0]);
+            sleep(400);
+            flick1.setPosition(flicksDown[0]);
+            flick2.setPosition(flicksDown[1]);
+            flick3.setPosition(flicksDown[2]);
+            sleep(400);
+            counter += 1;
+            flick2.setPosition(flicksUp[1]);
+            sleep(400);
+            flick1.setPosition(flicksDown[0]);
+            flick2.setPosition(flicksDown[1]);
+            flick3.setPosition(flicksDown[2]);
+            sleep(400);
+            flick3.setPosition(flicksUp[2]);
+            sleep(400);
+            flick1.setPosition(flicksDown[0]);
+            flick2.setPosition(flicksDown[1]);
+            flick3.setPosition(flicksDown[2]);
+            counter = 0;
             outtaking = false;
         }
     }
@@ -583,9 +621,9 @@ public class TeleopSupers_Red extends LinearOpMode {
         double[] rgb2b = normalizeColor(new double[]{cs2b.red(), cs2b.green(), cs2b.blue()});
         double[] rgb3a = normalizeColor(new double[]{cs3a.red(), cs3a.green(), cs3a.blue()});
         double[] rgb3b = normalizeColor(new double[]{cs3b.red(), cs3b.green(), cs3b.blue()});
-//        telemetry.addData("Red", cs1a.red());
-//        telemetry.addData("Green", cs1a.green());
-//        telemetry.addData("Blue", cs1a.blue());
+        telemetry.addData("Red", cs1a.red());
+        telemetry.addData("Green", cs1a.green());
+        telemetry.addData("Blue", cs1a.blue());
 
         // Check Slot 1
         double pdist = colorDistance(rgb1a, purpleBall);
@@ -634,6 +672,9 @@ public class TeleopSupers_Red extends LinearOpMode {
             double distance = Math.sqrt(Math.pow((mtRedX-camX), 2) + Math.pow((mtRedY-camY),2));
             targetVelocity = 49.17058*Math.pow((distance), 2)-26.44751*distance+465.26609;
             targetVelocity = targetVelocity * 1.05; //tweak if shooting to short or far
+            if (counter == 0){
+                targetVelocity += 10;
+            }
             targetVelocity = Math.round((double) targetVelocity/ 20) * 20; //Ensure a multiple of 20 to simplify PID
             if (targetVelocity > 700){
                 targetVelocity = 840;

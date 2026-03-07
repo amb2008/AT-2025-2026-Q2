@@ -43,7 +43,7 @@ public class AutoBlueWall extends LinearOpMode {
     private final Pose scorePose2 = new Pose(49, 9, Math.toRadians(180));
     private final Pose pickup1Pose = new Pose(50, 30, Math.toRadians(180));
     private final Pose pickup2Pose = new Pose(14, 12, Math.toRadians(180));
-    private final Pose pickup3Pose = new Pose(30, 10, Math.toRadians(180));
+    private final Pose pickup3Pose = new Pose(14, 12, Math.toRadians(180));
     private Path scorePreload;
     private PathChain grabPickup1, scorePickup1, grabPickup2, scorePickup2, grabPickup3, scorePickup3;
 
@@ -266,7 +266,7 @@ public class AutoBlueWall extends LinearOpMode {
         outtake();
         sweep = false;
 //
-        // --------- STEP 6: GRAB PICKUP 3 ----------
+        // --------- STEP 7: GRAB PICKUP 3 ----------
         follower.followPath(grabPickup3, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
@@ -275,6 +275,35 @@ public class AutoBlueWall extends LinearOpMode {
         }
         telemetry.addLine("Path finished");
         telemetry.update();
+        intakeMacroFar();
+
+//       STEP 8 SCORE PICKUP 3
+        follower.followPath(scorePickup3, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
+        telemetry.addLine("Path finished");
+        telemetry.update();
+        sweep = true;
+        outtake();
+        sleep(500);
+        outtake();
+        sweep = false;
+
+//        LEAVE
+        new Thread(()->{
+            while (opModeIsActive()){
+                resetTurret();
+            }
+        }).start();
+        follower.followPath(grabPickup3, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            telemetry.addLine("Following path");
+            telemetry.update();
+        }
     }
 
     private void outtake() {
@@ -653,5 +682,32 @@ public class AutoBlueWall extends LinearOpMode {
     private void fwOff(){
         fwl.setVelocity(0);
         fwr.setVelocity(0);
+    }
+    private void resetTurret(){
+        sweep = false;
+        double targetTurretAngle = -96;
+        double currentVoltage = axonEncoder.getVoltage();
+        double currentServoAngle = (currentVoltage / MAX_VOLTAGE) * 360.0;
+        double threshold = MAX_VOLTAGE / 2.0;
+        if (currentVoltage - lastVoltage < -threshold) {
+            rotationCount++;
+        } else if (currentVoltage - lastVoltage > threshold) {
+            rotationCount--;
+        }
+        lastVoltage = currentVoltage;
+        double totalServoDegrees = (rotationCount * 360.0) + currentServoAngle;
+        double turretAngle = totalServoDegrees / GEAR_RATIO;
+
+        if (Math.abs(turretAngle-targetTurretAngle)>4){
+            if (turretAngle >= targetTurretAngle) {
+                lastDirection = -1;
+            } else {
+                lastDirection = 1;
+            }
+            turretPower = 0.99*lastDirection;
+            turret.setPower(turretPower);
+        } else {
+            turret.setPower(0);
+        }
     }
 }
