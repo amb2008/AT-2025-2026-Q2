@@ -87,6 +87,7 @@ public class TeleopSupers_Red extends LinearOpMode {
     private boolean intakeReady = true;
     private boolean needPattern = true;
     private boolean outtaking = false;
+    private boolean retry = true;
     private boolean wackSet = false;
     private boolean driverLock = false;
     private boolean far = false;
@@ -201,7 +202,6 @@ public class TeleopSupers_Red extends LinearOpMode {
 
         while (opModeIsActive()) {
             telemetry.addLine("AT is the best!");
-            telemetry.update();
             if (!fwoff){
                 fwOn();
             } else {
@@ -283,21 +283,28 @@ public class TeleopSupers_Red extends LinearOpMode {
                 intake2.setPower(0);
             }
 
-            if (gamepad2.left_bumper){
+            if (gamepad2.left_bumper && gamepad2.right_bumper){
+                sweep = true;
+                rotationCount = 0;
+            } else if (gamepad2.left_bumper){
                 turret.setPower(-0.99);
                 sweep = false;
             } else if (gamepad2.right_bumper){
                 turret.setPower(0.99);
                 sweep = false;
-            }
-            if (gamepad2.left_bumper && gamepad2.right_bumper){
-                sweep = true;
-                rotationCount = 0;
+            } else if (!sweep){
+                turret.setPower(0);
             }
 
             if (gamepad2.dpad_left){
                 outtaking = false;
+                retry = false;
+                new Thread(()->{
+                    sleep(1000);
+                    retry = true;
+                }).start();
             }
+
 
             if (gamepad1.a && !aWasPressed){
                 aWasPressed = true;
@@ -441,7 +448,7 @@ public class TeleopSupers_Red extends LinearOpMode {
                     tx = tag.getTargetXDegrees();
                     lastDirection = Math.signum(tx+1)*1;
                     if (far){
-                        lastDirection = Math.signum(tx+1)*1;
+                        lastDirection = Math.signum(tx+4.5)*1;
                     }
                     locked = true;
                     break;
@@ -458,20 +465,20 @@ public class TeleopSupers_Red extends LinearOpMode {
             turretPower = 0.99*lastDirection;
             turret.setPower(turretPower);
             // ---------------- STUCK DETECTION ----------------
-            double angleChange = Math.abs(turretAngle - lastTurretAngle);
-
-            if (angleChange < STUCK_ANGLE_THRESHOLD) {
-                stuckTimer += timer.seconds();
-            } else {
-                stuckTimer = 0;
-            }
-
-            if (stuckTimer > STUCK_TIME_THRESHOLD) {
-                lastDirection *= -1;   // reverse direction
-                stuckTimer = 0;        // reset timer
-            }
-            lastTurretAngle = turretAngle;
-            timer.reset();
+//            double angleChange = Math.abs(turretAngle - lastTurretAngle);
+//
+//            if (angleChange < STUCK_ANGLE_THRESHOLD) {
+//                stuckTimer += timer.seconds();
+//            } else {
+//                stuckTimer = 0;
+//            }
+//
+//            if (stuckTimer > STUCK_TIME_THRESHOLD) {
+//                lastDirection *= -1;   // reverse direction
+//                stuckTimer = 0;        // reset timer
+//            }
+//            lastTurretAngle = turretAngle;
+//            timer.reset();
         }
         else if (locked) {
             double error = tx+1;
@@ -522,25 +529,12 @@ public class TeleopSupers_Red extends LinearOpMode {
             outtaking = true;
             counter = 0;
             for (String targetColor : outPattern) {
-                counter += 1;
-                boolean launched = false;
-                checkColor();
-                for (int i = 0; i < slotColors.length; i++){
-                    if (slotColors[i].equalsIgnoreCase(targetColor)){
-                        if (i==0){
-                            flick1.setPosition(flicksUp[0]);
-                        } else if (i==1){
-                            flick2.setPosition(flicksUp[1]);
-                        } else if (i==2){
-                            flick3.setPosition(flicksUp[2]);
-                        }
-                        launched = true;
-                        break;
-                    }
-                }
-                if (!launched){
+                if (outtaking){
+                    counter += 1;
+                    boolean launched = false;
+                    checkColor();
                     for (int i = 0; i < slotColors.length; i++){
-                        if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")){
+                        if (slotColors[i].equalsIgnoreCase(targetColor)){
                             if (i==0){
                                 flick1.setPosition(flicksUp[0]);
                             } else if (i==1){
@@ -552,25 +546,42 @@ public class TeleopSupers_Red extends LinearOpMode {
                             break;
                         }
                     }
-                }
-                if (launched){
-                    sleep(400);
-                    flick1.setPosition(flicksDown[0]);
-                    flick2.setPosition(flicksDown[1]);
-                    flick3.setPosition(flicksDown[2]);
-                }
+                    if (!launched){
+                        for (int i = 0; i < slotColors.length; i++){
+                            if (slotColors[i].equalsIgnoreCase("green") || slotColors[i].equalsIgnoreCase("purple")){
+                                if (i==0){
+                                    flick1.setPosition(flicksUp[0]);
+                                } else if (i==1){
+                                    flick2.setPosition(flicksUp[1]);
+                                } else if (i==2){
+                                    flick3.setPosition(flicksUp[2]);
+                                }
+                                launched = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (launched){
+                        sleep(400);
+                        flick1.setPosition(flicksDown[0]);
+                        flick2.setPosition(flicksDown[1]);
+                        flick3.setPosition(flicksDown[2]);
+                    }
 
-                checkColor();
-                if (counter<3){
-                    sleep(300);
-                }
-                if (counter == 1){
-                    sleep(200);
                     checkColor();
-                    if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
-                        outtaking = false;
-                        outtake(outPattern);
-                        break;
+                    if (counter<3){
+                        sleep(300);
+                    }
+                    if (counter == 1){
+                        sleep(200);
+                        checkColor();
+                        if (!slotColors[0].equalsIgnoreCase("Empty") && !slotColors[1].equalsIgnoreCase("Empty") && !slotColors[2].equalsIgnoreCase("Empty")){
+                            outtaking = false;
+                            if (retry) {
+                                outtake(outPattern);
+                            }
+                            break;
+                        }
                     }
                 }
             }
