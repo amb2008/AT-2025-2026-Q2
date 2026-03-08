@@ -513,7 +513,7 @@ public class AutoBlueWall extends LinearOpMode {
             intake2.setPower(0);
         }).start();
         new Thread(()->{
-            sleep(5000);
+            sleep(3000);
             intakeDone = true;
         }).start();
         driveRelativeX(2);

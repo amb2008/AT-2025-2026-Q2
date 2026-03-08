@@ -122,8 +122,8 @@ public class TeleopSupers_Red extends LinearOpMode {
     private double lastVoltage = 0;
     private int rotationCount = 0;
     // Safety Limits (Degrees)
-    private static final double MAX_TURRET_ANGLE = 90;
-    private static final double MIN_TURRET_ANGLE = -90;
+    private static final double MAX_TURRET_ANGLE = 120;
+    private static final double MIN_TURRET_ANGLE = -120;
     //    FLYWHEEL
     private IMU imu;
     PIDController pid = new PIDController(fwkp, 0.0, 0.0);
@@ -222,16 +222,16 @@ public class TeleopSupers_Red extends LinearOpMode {
             limelight.pipelineSwitch(1);
             driveMecanum();
 
-            if (gamepad1.left_trigger >0.1 && !trigPressed){
-                trigPressed = true;
-                lastDirection = -lastDirection;
-            } else if (gamepad1.right_trigger >0.1 && !trigPressed){
-                trigPressed = true;
-                lastDirection = -lastDirection;
-            }
-            if (gamepad1.left_trigger <0.1 && gamepad1.right_trigger <0.1 ){
-                trigPressed = false;
-            }
+//            if (gamepad1.left_trigger >0.1 && !trigPressed){
+//                trigPressed = true;
+//                lastDirection = -lastDirection;
+//            } else if (gamepad1.right_trigger >0.1 && !trigPressed){
+//                trigPressed = true;
+//                lastDirection = -lastDirection;
+//            }
+//            if (gamepad1.left_trigger <0.1 && gamepad1.right_trigger <0.1 ){
+//                trigPressed = false;
+//            }
             if (gamepad2.dpad_down) {
                 fwOff();
             } else if (gamepad2.dpad_up) {
@@ -285,7 +285,7 @@ public class TeleopSupers_Red extends LinearOpMode {
 
             if (gamepad2.left_bumper && gamepad2.right_bumper){
                 sweep = true;
-                rotationCount = 0;
+                rotationCount = -1;
             } else if (gamepad2.left_bumper){
                 turret.setPower(-0.99);
                 sweep = false;

@@ -550,7 +550,7 @@ public class AutoRedClose extends LinearOpMode {
             sleep(5000);
             intakeDone = true;
         }).start();
-        driveRelativeX(25);
+        driveRelativeX(26);
     }
     private void intakeMacroFar(){
         intakeDone = false;
